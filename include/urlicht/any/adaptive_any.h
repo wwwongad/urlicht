@@ -79,13 +79,13 @@ namespace urlicht {
                 }
             },
             .clone = [](const void* src, void* dest) {
-                auto* src_ = static_cast<storage_type*>(src);
+                const auto* src_ = static_cast<const storage_type*>(src);
                 auto* dest_ = static_cast<storage_type*>(dest);
                 if constexpr (InSBO) {
-                    auto* src_value = reinterpret_cast<T*>(src_->aligned_buffer);
+                    const auto* src_value = reinterpret_cast<const T*>(src_->aligned_buffer);
                     std::construct_at(reinterpret_cast<T*>(dest_->aligned_buffer), *src_value);
                 } else {
-                    auto* src_value = reinterpret_cast<T*>(src_->heap_ptr);
+                    const auto* src_value = reinterpret_cast<const T*>(src_->heap_ptr);
                     dest_->heap_ptr = new T(*src_value);
                 }
             },
@@ -111,12 +111,12 @@ namespace urlicht {
         }
 
         constexpr void copy_from(const adaptive_any& other) {
-            other.vtable_->clone(other.content_, content_);
+            other.vtable_->clone(&other.content_, &content_);
             vtable_ = other.vtable_;
         }
 
         constexpr void move_from(adaptive_any&& other) noexcept {
-            other.vtable_->move(other.content_, content_);
+            other.vtable_->move(&other.content_, &content_);
             vtable_ = other.vtable_;
             other.vtable_ = nullptr;
         }
@@ -201,7 +201,7 @@ namespace urlicht {
 
         constexpr void reset() noexcept {
             if (this->has_value()) {
-                vtable_->destroy(content_);
+                vtable_->destroy(&content_);
                 vtable_ = nullptr;
             }
         }
@@ -269,18 +269,18 @@ namespace urlicht {
 
         // any_casts
         template <typename T, std::size_t S, std::size_t A>
-        friend const T* any_cast(const adaptive_any<S, A>* operand) noexcept;
+        friend const std::remove_cvref_t<T>* any_cast(const adaptive_any<S, A>* operand) noexcept;
 
         template <typename T, std::size_t S, std::size_t A>
-        friend T* any_cast(adaptive_any<S, A>* operand) noexcept;
+        friend std::remove_cvref_t<T>* any_cast(adaptive_any<S, A>* operand) noexcept;
 
         template <typename T, std::size_t S, std::size_t A>
-        friend T* unchecked_any_cast(adaptive_any<S, A>* operand) noexcept;
+        friend std::remove_cvref_t<T>* unchecked_any_cast(adaptive_any<S, A>* operand) noexcept;
 
     private:
         // Data member
         storage_type content_;
-        any_detail::vtable* vtable_{};
+        const any_detail::vtable* vtable_{};
     };
 
 
