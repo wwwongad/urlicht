@@ -206,13 +206,13 @@ namespace urlicht {
             : key_equal_{std::forward<KeyEq>(key_eq)} {  }
 
             template <concepts::compatible_iterator<value_type> Iter,
-                      concepts::sentinel_or_iter<Iter> Sentinel>
+                      std::sentinel_for<Iter> Sentinel>
             constexpr map_uf_base_(Iter first, Sentinel last)
             requires std::default_initializable<key_equal>
             : map_uf_base_(first, last, key_equal{}) {  }
 
             template <concepts::compatible_iterator<value_type> Iter,
-                      concepts::sentinel_or_iter<Iter> Sentinel,
+                      std::sentinel_for<Iter> Sentinel,
                       concepts::can_construct<key_equal> KeyEq>
             constexpr map_uf_base_(Iter first, Sentinel last, KeyEq&& key_eq)
             : key_equal_{ std::forward<KeyEq>(key_eq) } {
@@ -307,11 +307,11 @@ namespace urlicht {
             }
 
             template <concepts::compatible_iterator<value_type> Iter,
-                      concepts::sentinel_or_iter<Iter> Sentinel>
+                      std::sentinel_for<Iter> Sentinel>
             constexpr void insert(Iter first, Sentinel last) {
-                if constexpr (std::random_access_iterator<Iter>) {
+                if constexpr (std::forward_iterator<Iter>) {
                     const auto m = this->parents_.size();
-                    const auto n = static_cast<size_type>(std::distance(first, last));
+                    const auto n = static_cast<size_type>(std::ranges::distance(first, last));
                     this->parents_.reserve(m + n);
                     if constexpr (TrackSize) {
                         this->sizes_.reserve(m + n);
@@ -330,11 +330,16 @@ namespace urlicht {
 
             template <concepts::compatible_range<value_type> Rng>
             constexpr void insert_range(Rng&& rng) {
-                if constexpr (concepts::rvalue_range<Rng&&>) {
-                    this->insert(std::make_move_iterator(std::ranges::begin(rng)),
-                                 std::make_move_iterator(std::ranges::end(rng)));
-                } else {
-                    this->insert(std::ranges::begin(rng), std::ranges::end(rng));
+                if constexpr (std::ranges::sized_range<Rng> || std::ranges::forward_range<Rng>) {
+                    const auto m = this->parents_.size();
+                    const auto n = static_cast<size_type>(std::ranges::distance(rng));
+                    this->parents_.reserve(m + n);
+                    if constexpr (TrackSize) {
+                        this->sizes_.reserve(m + n);
+                    }
+                }
+                for (auto&& elem : rng) {
+                    this->try_emplace(std::forward<decltype(elem)>(elem));
                 }
             }
 
@@ -608,8 +613,9 @@ namespace urlicht {
 
             template <typename... Args>
             explicit constexpr basic_union_find(Args&& ...args)
-            requires (sizeof...(Args) > 0 && (!std::same_as<basic_union_find, std::decay_t<Args>> && ...)) &&
-                    std::constructible_from<base_uf, Args&&...>
+            requires (sizeof...(Args) > 0) &&
+                     (!std::same_as<basic_union_find, std::remove_cvref_t<Args>> && ...) &&
+                     std::constructible_from<base_uf, Args&&...>
             : base_uf{ std::forward<Args>(args)... } {   }
 
             constexpr basic_union_find(const basic_union_find&) = default;
@@ -727,7 +733,7 @@ namespace urlicht {
             }
 
             /********************** ITERATORS **********************/
-            // Non-const iterators are not provided
+            
             [[nodiscard]] const_iterator begin() const noexcept {
                 return this->parents_.begin();
             }
