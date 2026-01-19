@@ -787,7 +787,7 @@ namespace urlicht {
                 if (TrackSize) {
                     this->sizes_.clear();
                 }
-                if constexpr (std::is_empty_v<key_equal>) {
+                if constexpr (!std::is_empty_v<key_equal>) {
                     this->key_equal_.clear();
                 }
                 this->set_count_ = 0U;
