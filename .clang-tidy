@@ -1,0 +1,59 @@
+Language:        Cpp
+Standard:        c++20
+
+HeaderFileExtensions:
+  - h
+  - hpp
+
+ImplementationFileExtensions:
+  - cpp
+
+HeaderFilterRegex:
+  '^.*[.](h|hpp)$'
+
+Checks: >
+  # Modernize
+  modernize-*,
+  -modernize-use-trailing-return-type,
+
+  # Performance
+  performance-*,
+
+  # C++ Core Guidelines
+  cppcoreguidelines-*,
+  -cppcoreguidelines-avoid-c-arrays,
+  -cppcoreguidelines-init-variables,
+  -cppcoreguidelines-pro-type-member-init,
+  -cppcoreguidelines-pro-type-reinterpret-cast,
+
+  # Readability
+  readability-braces-around-statements,
+  readability-container-contains,
+  readability-container-size-empty,            
+  readability-else-after-return,
+  readability-misleading-indentation,
+  readability-redundant-control-flow,
+  readability-redundant-declaration,
+  readability-redundant-function-ptr-dereference,
+  readability-redundant-smartptr-get,
+  readability-redundant-string-cstr,
+  readability-redundant-string-init,
+  readability-simplify-boolean-expr,
+  readability-simplify-subscript-expr,
+  readability-static-accessed-through-instance,
+  readability-static-definition-in-anonymous-namespace,
+  readability-string-compare,
+  readability-unique_ptr-delete-release,
+  readability-use-anyofallof,
+  readability-use-std-min-max,
+
+  # Portability
+  portability-simd-intrinsics,
+
+  # Google
+  google-default-arguments,
+  google-explicit-constructor
+
+WarningsAsErrors: ''
+AnalyzeTemporaryDtors: false
+FormatStyle: file
