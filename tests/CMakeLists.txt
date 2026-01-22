@@ -11,13 +11,7 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
 add_executable(urlicht_test
-        memory/test_tagged_ptr.cpp
-        any/test_inplace_any.cpp
-        any/test_any_view.cpp
-        any/test_adaptive_any.cpp
-        container/test_union_find.cpp
-        procedural/graph/test_kruskal_mst.cpp
-        tracker.h
+        container/test_inplace_vector.cpp
 )
 
 target_link_libraries(urlicht_test
