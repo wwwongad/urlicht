@@ -1,7 +1,7 @@
 #ifndef URLICHT_KRUSKAL_MST_H
 #define URLICHT_KRUSKAL_MST_H
 #include <type_traits>
-#include <urlicht/container/union_find.h>
+#include <urlicht/adaptor/union_find.hpp>
 #include <urlicht/concepts_utility.h>
 #include <urlicht/compare.h>
 
