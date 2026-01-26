@@ -1,0 +1,2 @@
+Urlicht is a modern, comprehensive header-only C++20 template library that extends the standard library with a variety of core components. It is designed with a focus on rich
+functionality, high performance, and template configurability. It strictly exercises zero overhead abstraction - while providing optional advanced features, it maintains the efficiency of a minimal implementation when they are not in use.
