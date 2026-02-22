@@ -33,12 +33,7 @@ namespace urlicht {
     }
 
     template <typename T>
-    inline constexpr bool is_adaptive_any_v = any_detail::is_adaptive_any<T>::value;
-
-    namespace concepts {
-        template <typename T>
-        concept adaptive_any = is_adaptive_any_v<T>;
-    }
+    inline constexpr bool is_urlicht_adaptive_any_v = any_detail::is_adaptive_any<T>::value;
 
 
     template <std::size_t OptimizeForSize, std::size_t OptimizeForAlign>
@@ -130,7 +125,7 @@ namespace urlicht {
         constexpr adaptive_any() noexcept = default;
 
         template <typename T>
-        requires (!is_adaptive_any_v<std::remove_cvref_t<T>>) &&
+        requires (!is_urlicht_adaptive_any_v<std::remove_cvref_t<T>>) &&
                   std::constructible_from<T, T&&>
         constexpr adaptive_any(T&& val)
         noexcept(std::is_nothrow_constructible_v<T, T&&>) {
@@ -138,7 +133,7 @@ namespace urlicht {
         }
 
         template <typename T>
-        requires (!is_adaptive_any_v<std::remove_cvref_t<T>>) &&
+        requires (!is_urlicht_adaptive_any_v<std::remove_cvref_t<T>>) &&
                   std::constructible_from<T, T&&>
         constexpr adaptive_any(const bool cond, T&& val)
         noexcept(std::is_nothrow_constructible_v<T, T&&>) {
@@ -146,7 +141,7 @@ namespace urlicht {
         }
 
         template <typename T, typename... Args>
-        requires (!is_adaptive_any_v<std::remove_cvref_t<T>>) &&
+        requires (!is_urlicht_adaptive_any_v<std::remove_cvref_t<T>>) &&
                   std::constructible_from<std::remove_cvref_t<T>, Args&&...>
         constexpr adaptive_any(any_detail::inplace_t<T>, Args&&... args)
         noexcept(std::is_nothrow_constructible_v<T, Args&&...>) {
@@ -154,7 +149,7 @@ namespace urlicht {
         }
 
         template <typename T, typename... Args>
-        requires (!is_adaptive_any_v<std::remove_cvref_t<T>>) &&
+        requires (!is_urlicht_adaptive_any_v<std::remove_cvref_t<T>>) &&
                   std::constructible_from<std::remove_cvref_t<T>, Args&&...>
         explicit constexpr adaptive_any(any_detail::inplace_cond_t<T>, const bool cond, Args&&... args)
         noexcept(std::is_nothrow_constructible_v<T, Args&&...>) {
@@ -256,8 +251,8 @@ namespace urlicht {
         }
 
         template <typename T>
-        [[nodiscard]] bool is() const noexcept {
-            return typeid(T) == type_info();
+        [[nodiscard]] constexpr bool is() const noexcept {
+            return vtable_ == &vtable_for<T, use_sbo_v<T>>;
         }
 
         [[nodiscard]] constexpr bool in_sbo() const noexcept {
@@ -298,7 +293,7 @@ namespace urlicht {
     template <typename T, std::size_t S, std::size_t A>
     std::remove_cvref_t<T>* any_cast(adaptive_any<S, A>* operand) noexcept {
         using U = std::remove_cvref_t<T>;
-        if (operand && operand->has_value() && operand->type_info() == typeid(U)) {
+        if (operand && operand->template is<U>()) {
             if constexpr (adaptive_any<S, A>::template use_sbo_v<U>) {
                 return reinterpret_cast<U*>(operand->content_.aligned_buffer);
             } else {
@@ -363,7 +358,7 @@ namespace urlicht {
     // make_adaptive_any
     template <typename T,
               typename... Args,
-              std::size_t S = std::max(sizeof(T) * 2, 16ull),
+              std::size_t S = std::max(sizeof(T) * 2, 16ul),
               std::size_t A = alignof(T)>
     [[nodiscard]] constexpr auto make_adaptive_any(Args&&... args) {
         adaptive_any<S, A> any(inplace<T>, std::forward<Args>(args)...);
