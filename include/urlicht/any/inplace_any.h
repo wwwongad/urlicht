@@ -33,13 +33,7 @@ namespace urlicht {
     }
 
     template <typename T>
-    inline constexpr bool is_inplace_any_v = any_detail::is_inplace_any<T>::value;
-
-    namespace concepts {
-        template <typename T>
-        concept inplace_any = is_inplace_any_v<T>;
-    }
-
+    inline constexpr bool is_urlicht_inplace_any_v = any_detail::is_inplace_any<T>::value;
 
     template <std::size_t MaxSize, std::size_t MaxAlign>
     class inplace_any {
@@ -58,8 +52,7 @@ namespace urlicht {
                     std::destroy_at(storage);
                 }
             },
-            .move = [](void* src, void* dst)
-            noexcept(std::is_nothrow_move_constructible_v<T>) {
+            .move = [](void* src, void* dst) noexcept(std::is_nothrow_move_constructible_v<T>) {
                 auto* value = static_cast<T*>(src);
                 std::construct_at(static_cast<T*>(dst), std::move(*value));
                 std::destroy_at(value);
@@ -68,7 +61,7 @@ namespace urlicht {
                 auto* value = static_cast<const T*>(src);
                 std::construct_at(static_cast<T*>(dst), *value);
             },
-            .type_info = [] noexcept {
+            .type_info = [] () noexcept {
                 return &typeid(T);
             }
         };
@@ -109,7 +102,7 @@ namespace urlicht {
         constexpr inplace_any() noexcept = default;
 
         template <typename T>
-        requires (!is_inplace_any_v<std::remove_cvref_t<T>> && std::constructible_from<T, T&&>)
+        requires (!is_urlicht_inplace_any_v<std::remove_cvref_t<T>> && std::constructible_from<T, T&&>)
         constexpr inplace_any(T&& val)
         noexcept(std::is_nothrow_constructible_v<T, T&&>){
             this->template construct<T>(true, std::forward<T>(val));
@@ -123,7 +116,7 @@ namespace urlicht {
         }
 
         template <typename T, typename... Args>
-        requires (!is_inplace_any_v<std::remove_cvref_t<T>>) &&
+        requires (!is_urlicht_inplace_any_v<std::remove_cvref_t<T>>) &&
                   std::constructible_from<std::remove_cvref_t<T>, Args&&...>
         constexpr inplace_any(any_detail::inplace_t<T>, Args&&... args)
         noexcept(std::is_nothrow_constructible_v<T, Args&&...>) {
@@ -131,7 +124,7 @@ namespace urlicht {
         }
 
         template <typename T, typename... Args>
-        requires (!is_inplace_any_v<std::remove_cvref_t<T>>) &&
+        requires (!is_urlicht_inplace_any_v<std::remove_cvref_t<T>>) &&
                   std::constructible_from<std::remove_cvref_t<T>, Args&&...>
         explicit constexpr inplace_any(any_detail::inplace_cond_t<T>, const bool cond, Args&&... args)
         noexcept(std::is_nothrow_constructible_v<T, Args&&...>) {
@@ -151,7 +144,7 @@ namespace urlicht {
         }
 
         constexpr inplace_any& operator=(const inplace_any& other) {
-            if (this != &other) {
+            if (this != &other) [[likely]] {
                 this->reset();
                 if (other.has_value()) {
                     this->copy_from(other);
@@ -161,7 +154,7 @@ namespace urlicht {
         }
 
         constexpr inplace_any& operator=(inplace_any&& other) noexcept {
-            if (this != &other) {
+            if (this != &other) [[likely]] {
                 this->reset();
                 if (other.has_value()) {
                     this->move_from(std::move(other));
@@ -201,7 +194,7 @@ namespace urlicht {
          *        all referenced object type is nothrow move constructible.
          */
         constexpr void swap(inplace_any& other) noexcept(false) {
-            if (this == &other) {
+            if (this == &other) [[unlikely]] {
                 return;
             }
             if (!this->has_value() && !other.has_value()) { // Both empty
@@ -237,8 +230,8 @@ namespace urlicht {
         }
 
         template <typename T>
-        [[nodiscard]] bool is() const noexcept {
-            return typeid(T) == type_info();
+        [[nodiscard]] constexpr bool is() const noexcept {
+            return vtable_ == &vtable_for<T>;
         }
 
         template <typename T, std::size_t S, std::size_t A>
@@ -263,7 +256,8 @@ namespace urlicht {
     template <typename T, std::size_t S, std::size_t A>
     std::remove_cvref_t<T>* any_cast(inplace_any<S, A>* operand) noexcept {
         using U = std::remove_cvref_t<T>;
-        if (operand && operand->has_value() && operand->type_info() == typeid(U)) {
+        static_assert(!std::is_void_v<U>, "The provided type must not be void");
+        if (operand && operand-> template is<U>()) {
             return reinterpret_cast<U*>(operand->data_);
         }
         return nullptr;
@@ -319,7 +313,7 @@ namespace urlicht {
     // make_inplace_any
     template <typename T,
               typename... Args,
-              std::size_t S = std::max(sizeof(T) * 2, 16ull),
+              std::size_t S = std::max(sizeof(T) * 2, 16ul),
               std::size_t A = alignof(T)>
     [[nodiscard]] constexpr auto make_inplace_any(Args&&... args) {
         inplace_any<S, A> any(inplace<T>, std::forward<Args>(args)...);
