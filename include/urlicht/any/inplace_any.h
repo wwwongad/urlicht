@@ -1,4 +1,3 @@
-
 #ifndef URLICHT_INPLACE_ANY_H
 #define URLICHT_INPLACE_ANY_H
 
@@ -42,7 +41,7 @@ namespace urlicht {
 
     private:
         template <typename T>
-        static constexpr bool can_fit_storage = sizeof(T) <= MaxSize && alignof(T) <= MaxAlign;
+        static constexpr bool can_fit_storage = any_detail::is_small_obj_v<T, MaxSize, MaxAlign>;
 
         template <typename T> // Guaranteed to be decayed type
         static constexpr any_detail::vtable vtable_for = {
@@ -52,7 +51,7 @@ namespace urlicht {
                     std::destroy_at(storage);
                 }
             },
-            .move = [](void* src, void* dst) noexcept(std::is_nothrow_move_constructible_v<T>) {
+            .move = [](void* src, void* dst) noexcept {
                 auto* value = static_cast<T*>(src);
                 std::construct_at(static_cast<T*>(dst), std::move(*value));
                 std::destroy_at(value);
@@ -70,7 +69,7 @@ namespace urlicht {
         constexpr void construct(const bool cond, Args&& ...args)
         noexcept(std::is_nothrow_constructible_v<std::remove_cvref_t<T>, Args&&...>) {
             using U = std::remove_cvref_t<T>;
-            static_assert(can_fit_storage<U>, "The provided type is too large or misaligned");
+            static_assert(can_fit_storage<U>, "The provided type is too large, misaligned, or may throw on move");
             static_assert(std::copy_constructible<U>, "The provided type must be copy constructible");
             if (cond) {
                 std::construct_at(reinterpret_cast<U*>(data_), std::forward<Args>(args)...);
@@ -83,7 +82,7 @@ namespace urlicht {
             vtable_ = other.vtable_;
         }
 
-        constexpr void move_from(inplace_any&& other) {
+        constexpr void move_from(inplace_any&& other) noexcept {
             other.vtable_->move(other.data_, data_);
             vtable_ = other.vtable_;
             other.vtable_ = nullptr;
