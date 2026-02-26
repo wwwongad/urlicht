@@ -5,6 +5,7 @@
 #include <type_traits>
 #include <utility>
 #include <any>
+#include <iostream>
 #include <urlicht/concepts_utility.h>
 
 namespace urlicht {
@@ -45,14 +46,19 @@ namespace urlicht {
         constexpr any_view() noexcept = default;
 
         template <typename T>
-        requires (!is_urlicht_any_view<std::remove_cvref_t<T>> && !std::is_pointer_v<std::decay_t<T>>)
+        requires (!is_urlicht_any_view<std::remove_cvref_t<T>>
+                && !std::is_pointer_v<std::decay_t<T>>
+                && !std::same_as<std::decay_t<T>, std::nullptr_t>)
         constexpr any_view(T&& val) noexcept
-        : ptr_{std::addressof(val)}, meta_{&meta_for<std::remove_cvref_t<T>>} {}
+        : ptr_{std::addressof(val)}, meta_{&meta_for<std::remove_cvref_t<T>>} {
+        }
 
         template <typename T>
         constexpr any_view(const T* p) noexcept
-        : ptr_{p}, meta_{p ? &meta_for<std::remove_cvref_t<T>> : nullptr} {}
+        : ptr_{p}, meta_{p ? &meta_for<std::remove_cvref_t<T>> : nullptr} {
+        }
 
+        constexpr any_view(std::nullptr_t) noexcept {} // Initialize both fields as nullptr
 
         constexpr any_view(const any_view&) noexcept = default;
         constexpr any_view(any_view&&) noexcept = default;
@@ -64,7 +70,8 @@ namespace urlicht {
         /******************** MODIFIERS *********************/
 
         template <typename T>
-        requires (!std::is_pointer_v<std::decay_t<T>>)
+        requires (!std::is_pointer_v<std::decay_t<T>>
+               && !std::same_as<std::decay_t<T>, std::nullptr_t>)
         constexpr void view(T&& val) noexcept {
             ptr_ = std::addressof(val);
             meta_ = &meta_for<std::remove_cvref_t<T>>;
@@ -78,6 +85,10 @@ namespace urlicht {
             } else {
                 reset();
             }
+        }
+
+        constexpr void view(std::nullptr_t) noexcept {
+            reset();
         }
 
         constexpr void reset() noexcept {
@@ -101,6 +112,9 @@ namespace urlicht {
         }
 
         [[nodiscard]] constexpr const std::type_info& type_info() const noexcept {
+            if (meta_ == nullptr) [[unlikely]] {
+                return typeid(void);
+            }
             return *meta_->type_info();
         }
 
