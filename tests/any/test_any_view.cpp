@@ -16,7 +16,7 @@ TEST_F(AnyViewTest, Basics) {
     // Check value
     EXPECT_EQ(urlicht::any_cast<int>(v), 42);
 }
-/*
+
 TEST_F(AnyViewTest, PointerConstruction) {
     double d = 3.14159;
     urlicht::any_view v(&d);
@@ -24,11 +24,16 @@ TEST_F(AnyViewTest, PointerConstruction) {
     EXPECT_TRUE(v.is<double>());
     EXPECT_DOUBLE_EQ(urlicht::any_cast<double>(v), 3.14159);
 
-    urlicht::any_view null_v(static_cast<int*>(nullptr));
-    EXPECT_FALSE(null_v.has_value());
-    EXPECT_EQ(null_v.type_info(), typeid(void));
+    int* p = nullptr;
+    urlicht::any_view null_int(p);
+    EXPECT_FALSE(null_int.has_value());
+    EXPECT_EQ(null_int.type_info(), typeid(void));
+
+    urlicht::any_view null_ptr(nullptr);
+    EXPECT_FALSE(null_ptr.has_value());
+    EXPECT_EQ(null_ptr.type_info(), typeid(void));
 }
-*/
+
 TEST_F(AnyViewTest, ModifyOriginal) {
     int i = 10;
     urlicht::any_view v(i);
