@@ -3,51 +3,15 @@
 
 #include <urlicht/config.h>
 #include <urlicht/concepts_utility.h>
+#include <urlicht/memory/detail/arena_fwd.h>
 #include <memory>
 #include <cstdint>
 #include <cstddef>
-#include <cassert>
 #include <limits>
-#include <variant>
-#include <bit>
+#include <algorithm>
+#include <concepts>
 
 namespace urlicht {
-    namespace memory_detail {
-
-        // Chunk footer (metadata) is placed at the end of the buffer, as follows:
-        //  | start               <----  curr              | &chunk_footer
-            ////////////////////////////////////////////////////////////////////////
-            ///                   user data                |     chunk_footer    ///
-            ////////////////////////////////////////////////////////////////////////
-
-        struct initial_buffer {
-            std::byte* start;
-            std::byte* curr;
-            std::size_t size;
-            bool external;
-
-            constexpr std::byte* end() const noexcept {
-                return start + size;
-            }
-        };
-
-        struct chunk_footer {
-            chunk_footer* next;
-            std::byte* start;
-            std::byte* curr;
-            std::size_t allocation_size;
-
-            constexpr auto actual_buffer_size() const noexcept {
-                return std::bit_cast<const std::byte*>(this) - start;
-            }
-        };
-
-    }
-
-    struct ArenaGrowthPolicy {
-        size_t initial_size = 1024;
-        double growth_rate = 1.2;
-    };
 
     /**
      * @brief An arena for raw memory allocation with optional upstream fallback. Behavior summary:
@@ -65,15 +29,15 @@ namespace urlicht {
      * @tparam GrowthPolicy Defines the initial size and the growth rate of the fall-back allocations once
      *         initial buffer is insufficient. Ignored if UseUpstream is false.
      *
-     * @note: - This class is typeless and thus incompatible with std::allocator_traits. Use urlicht::arena_allocator
+     * @note: - This class is typeless and thus incompatible with std::allocator_traits. Use urlicht::arena_view
      *          instead for STL-compatibility.
      * @note: - This class is not thread-safe.
      * @note: - If providing an external buffer to the class as the initial buffer, it will not be freed in
      *          release()/destructor, and it is the user's responsibility to manage it.
      */
-    template <bool UseUpstream = true,
-              ArenaGrowthPolicy GrowthPolicy = ArenaGrowthPolicy{},
-              concepts::allocator UpstreamAlloc = std::allocator<std::byte>>
+    template <bool UseUpstream, /* = true */
+              ArenaGrowthPolicy GrowthPolicy /* = {} */,
+              concepts::allocator UpstreamAlloc /* = std::allocator<std::byte> */>
     class arena {
         static_assert(std::same_as<typename UpstreamAlloc::value_type, std::byte>,
             "Upstream allocator must allocate std::byte");
@@ -401,7 +365,7 @@ namespace urlicht {
         /**
          * @brief No-op de-allocation callback, for API compatibility only.
          */
-        static constexpr void deallocate(void*, size_t, size_t align = default_align) noexcept { }
+        static constexpr void deallocate(void*, size_t, [[maybe_unused]] size_t align = default_align) noexcept { }
 
         friend constexpr bool operator==(const arena& lhs, const arena& rhs) noexcept {
             return std::addressof(lhs) == std::addressof(rhs);
@@ -409,231 +373,6 @@ namespace urlicht {
 
     };
 
-    namespace memory_detail {
-        template <typename T>
-        struct is_arena : std::false_type {};
-
-        template <bool U, ArenaGrowthPolicy P, typename A>
-        struct is_arena<arena<U, P, A>> : std::true_type {};
-    }
-
-    template <typename T>
-    inline constexpr bool is_urlicht_arena_v = memory_detail::is_arena<T>::value;
-
-    /////////////////////////////////////
-    ///      urlicht::arena_view      ///
-    /////////////////////////////////////
-
-    /**
-     * @brief A non-owning view to an allocator instance, designed to enable the sharing of the same allocator
-     *        among multiple objects. It is compatible with std::allocator_traits.
-     * @tparam T
-     * @note Ensure that the underlying arena outlives all arena_views pointing to it.
-     */
-    template <concepts::object T, bool UnsafeAllocInit = false, typename Arena = arena<>>
-    class arena_view;
-
-    namespace memory_detail {
-        template <typename T>
-        struct is_arena_view : std::false_type {};
-
-        template <typename T, bool I, typename A>
-        struct is_arena_view<arena_view<T, I, A>> : std::true_type {};
-
-        template <typename Arena, bool UnsafeAllocInit>
-        using zero_overhead_arena =
-            std::conditional_t<UnsafeAllocInit,
-                               arena<false, {}, typename Arena::upstream_allocator>,
-                               Arena>;
-    }
-
-    template <typename T>
-    inline constexpr bool is_urlicht_arena_view_v = memory_detail::is_arena_view<T>::value;
-
-    template <concepts::object T, bool UnsafeAllocInit, typename Arena>
-    class arena_view {
-        static_assert(is_urlicht_arena_v<Arena>, "Arena should be an instantiation of urlicht::arena");
-    public:
-        using arena_type = Arena;
-    private:
-        // Data member
-        arena_type* ptr_arena_{};
-    public:
-        using value_type = T;
-        using size_type = size_t;
-        using difference_type = std::ptrdiff_t;
-        using propagate_on_container_copy_assignment = std::true_type;
-        using propagate_on_container_move_assignment = std::true_type;
-        using propagate_on_container_swap = std::true_type;
-
-        template <typename U>
-        struct rebind {
-            using other = arena_view<U, UnsafeAllocInit, Arena>;
-        };
-
-        /**
-         * @brief Returns the UnsafeAllocInit template parameter.
-         */
-        static consteval bool unsafe_alloc_init() noexcept {
-            return UnsafeAllocInit;
-        }
-
-        constexpr arena_view() noexcept = delete;
-
-        /**
-         * @brief Constructs with an urlicht::arena by holding a reference to it.
-         * @param arena An urlicht::arena instance from which arena_view will allocate memory subsequently.
-         */
-        constexpr arena_view(arena_type& arena) noexcept
-            : ptr_arena_(&arena) {
-        }
-
-        constexpr arena_view(const arena_view&) noexcept = default;
-        constexpr arena_view(arena_view&&) noexcept = default;
-
-        template <typename U>
-        constexpr arena_view(const arena_view<U, UnsafeAllocInit, Arena>& other) noexcept
-        : ptr_arena_(other.get_arena()) {
-            UL_ASSERT(ptr_arena_ != nullptr, "Pointer to arena must not be null");
-        }
-
-        constexpr arena_view& operator=(const arena_view&) noexcept = default;
-        constexpr arena_view& operator=(arena_view&&) noexcept = default;
-
-        constexpr ~arena_view() noexcept = default;
-
-        // Core Methods
-        [[nodiscard]] constexpr value_type* allocate(const size_type n)
-        noexcept(UnsafeAllocInit) {
-            UL_ASSUME(ptr_arena_ != nullptr);
-            if constexpr (UnsafeAllocInit) {
-                auto* raw_bytes =
-                    ptr_arena_->unchecked_allocate_initial(
-                        n * sizeof(value_type), alignof(value_type)
-                    );
-                return static_cast<value_type*>(raw_bytes);
-            } else {
-                auto bad_size = [](const size_type size) {
-                    return size > std::numeric_limits<size_type>::max() / sizeof(value_type);
-                };
-                if (bad_size(n)) [[unlikely]] {
-                    throw std::bad_array_new_length{};
-                }
-                auto* raw_bytes = ptr_arena_->allocate(n * sizeof(value_type), alignof(value_type));
-                if (raw_bytes == nullptr) [[unlikely]] {
-                    throw std::bad_alloc{};
-                }
-                return static_cast<value_type*>(raw_bytes);
-            }
-        }
-
-        static constexpr void deallocate([[maybe_unused]] const value_type* p,
-                                         [[maybe_unused]] const size_type n) noexcept { }
-
-        /**
-         * @brief Returns a non-const pointer to the underlying arena for rebinding purpose.
-         */
-        [[nodiscard]] constexpr arena_type* get_arena() const noexcept {
-            return ptr_arena_;
-        }
-
-        [[nodiscard]] friend constexpr bool operator==(const arena_view& lhs,
-                                                       const arena_view& rhs) noexcept {
-            return lhs.ptr_arena_ == rhs.ptr_arena_;
-        }
-    };
-
-    //////////////////////////////////////////////
-    ///      urlicht::pmr::arena_resource      ///
-    //////////////////////////////////////////////
-    namespace pmr {
-        /**
-         * @brief Owning wrapper class for urlicht::arena that conforms to the std::pmr::memory_resource interface.
-         * @tparam Arena The underlying urlicht::arena for raw memory allocation. Defaults to
-         *               urlicht::arena<true, std::allocator<std::byte>, ArenaGrowthPolicy{}>.
-         */
-        template <typename Arena = arena<>, bool UnsafeAllocInit = false>
-        class arena_resource;
-    }
-
-    namespace memory_detail {
-        template <typename T>
-        struct is_arena_resource : std::false_type {};
-
-        template <typename A, bool U>
-        struct is_arena_resource<pmr::arena_resource<A, U>> : std::true_type {};
-    }
-
-    template <typename T>
-    inline constexpr bool is_urlicht_pmr_arena_resource_v = memory_detail::is_arena_resource<T>::value;
-
-    namespace pmr {
-
-        template <typename Arena, bool UnsafeAllocInit>
-        class arena_resource final : public std::pmr::memory_resource,
-                                     private memory_detail::zero_overhead_arena<Arena, UnsafeAllocInit> {
-            static_assert(is_urlicht_arena_v<Arena>, "Arena should be an instantiation of urlicht::arena");
-            using base_arena = memory_detail::zero_overhead_arena<Arena, UnsafeAllocInit>;
-        public:
-            /**
-             * @brief Perfect forwarding constructor delegating to the constructor of Arena. See
-             *        arena.h for more details.
-             */
-            template <typename ...Args>
-            requires std::constructible_from<base_arena, Args&&...> &&
-                     (!is_urlicht_pmr_arena_resource_v<std::remove_cvref_t<Args>> && ...)
-            constexpr arena_resource(Args&&... args)
-            noexcept(std::is_nothrow_constructible_v<base_arena, Args&&...>)
-            : base_arena(std::forward<Args>(args)...) {}
-
-            constexpr arena_resource(const arena_resource&) = delete;
-
-            constexpr arena_resource(arena_resource&&)
-            noexcept(std::is_nothrow_move_constructible_v<base_arena>) = default;
-
-            constexpr arena_resource& operator=(const arena_resource&) = delete;
-
-            constexpr arena_resource& operator=(arena_resource&&)
-            noexcept(std::is_nothrow_move_assignable_v<base_arena>) = default;
-
-            ~arena_resource() override { }
-
-            constexpr const base_arena& arena() const noexcept {
-                return static_cast<const base_arena&>(*this);
-            }
-
-            constexpr void reset() noexcept { base_arena::reset(); }
-            constexpr void release() noexcept { base_arena::release(); }
-
-        protected:
-            /**
-             * @throws std::bad_alloc - if allocation fails.
-             * @throws std::bad_array_new_length - if {bytes} plus alignment padding (if any) would
-             *         overflow size_t.
-             */
-            void* do_allocate(size_t bytes, size_t alignment)
-            noexcept(UnsafeAllocInit) override {
-                if constexpr (UnsafeAllocInit) {
-                    return base_arena::unchecked_allocate_initial(bytes, alignment);
-                } else {
-                    auto* ptr = base_arena::allocate(bytes, alignment);
-                    if (ptr == nullptr) [[unlikely]] {
-                        throw std::bad_alloc{};
-                    }
-                    return ptr;
-                }
-            }
-
-            /**
-             * @brief No-op deallocate call-back for compatibility.
-             */
-            void do_deallocate(void*, size_t, size_t) noexcept override { }
-
-            bool do_is_equal(const memory_resource& other) const noexcept override {
-                return this == std::addressof(other);
-            }
-        };
-    }
 }
 
 
