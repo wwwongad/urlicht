@@ -25,6 +25,24 @@ endif()
 
 add_executable(urlicht_test ${URLICHT_TEST_SOURCES})
 
+if(MSVC)
+    target_compile_options(urlicht_test PRIVATE
+            /Od
+            /RTC1
+            /Zi
+            /DDEBUG
+            /W4
+    )
+else()
+    target_compile_options(urlicht_test PRIVATE
+            -O0 -g -DDEBUG
+            -fsanitize=address,undefined
+            -Wall
+            -Wextra
+            -Wpedantic
+    )
+endif()
+
 target_compile_features(urlicht_test PRIVATE cxx_std_20)
 
 target_link_libraries(urlicht_test
