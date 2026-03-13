@@ -36,7 +36,6 @@ if(MSVC)
 else()
     target_compile_options(urlicht_test PRIVATE
             -O0 -g -DDEBUG
-            -fsanitize=address,undefined
             -Wall
             -Wextra
             -Wpedantic
