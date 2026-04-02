@@ -1,7 +1,7 @@
 #ifndef URLICHT_CONFIG_H
 #define URLICHT_CONFIG_H
 
-#include <iostream>
+#include <cstdio>
 #include <cstdlib>
 
 #define URLICHT_VERSION_MAJOR 1
@@ -9,23 +9,33 @@
 #define URLICHT_VERSION_PATCH 0
 
 #define URLICHT_VERSION \
-    URLICHT_VERSION_MAJOR * 10000 \
+    (URLICHT_VERSION_MAJOR * 10000 \
   + URLICHT_VERSION_MINOR * 100 \
-  + URLICHT_VERSION_PATCH
+  + URLICHT_VERSION_PATCH)
 
-#if __cplusplus < 202002L
-#   error "C++20 or newer is required for this library."
-#elif defined(_MSVC_LANG) && _MSVC_LANG < 202002L
+#if !(defined(__GNUC__) || defined(__clang__) || defined(_MSC_VER))
+#   error "Unknown compiler. Urlicht supports GCC, MSVC, and Clang only."
+#endif
+
+#ifndef UL_CPP_VERSION
+    #if defined(__GNUC__) || defined(__clang__)
+    #   define UL_CPP_VERSION __cplusplus
+    #elif defined(_MSC_VER)
+    #   define UL_CPP_VERSION _MSVC_LANG
+    #endif
+#endif
+
+#if UL_CPP_VERSION < 202002L
 #   error "C++20 or newer is required for this library."
 #endif
 
-#if __cplusplus >= 202600L
+#if UL_CPP_VERSION >= 202600L
 #   define UL_HAS_CPP26 1
 #else
 #   define UL_HAS_CPP26 0
 #endif
 
-#if __cplusplus >= 202302L
+#if UL_CPP_VERSION >= 202302L
 #   define UL_HAS_CPP23 1
 #else
 #   define UL_HAS_CPP23 0
@@ -61,6 +71,10 @@
     #endif
 #endif
 
+#if !(UL_PLATFORM_WINDOWS || UL_PLATFORM_LINUX || UL_PLATFORM_MACOS)
+#   error "Unknown operating system. Urlicht supports Linux, Windows, and MacOS only"
+#endif
+
 #if UL_HAS_CPP23
 #   define UL_CONSTEXPR23 constexpr
 #else
@@ -73,8 +87,8 @@
 #   define UL_CONSTEXPR26
 #endif
 
-#ifdef UL_EXCEPTIONS
-    #elif defined(__GNUC__) && !defined(__EXCEPTIONS)
+#ifndef UL_EXCEPTIONS
+    #if defined(__GNUC__) && !defined(__EXCEPTIONS)
     #  define UL_EXCEPTIONS 0
     #elif defined(__clang__) && !defined(__cpp_exceptions)
     #  define UL_EXCEPTIONS 0
@@ -82,14 +96,15 @@
     #  define UL_EXCEPTIONS 0
     #else
     #  define UL_EXCEPTIONS 1
+    #endif
 #endif
 
 #if UL_EXCEPTIONS
 #   define UL_TRY try
-#   define UL_CATCH catch
+#   define UL_CATCH(x) catch(x)
 #else
-#   define UL_TRY if constexpr(true)
-#   define UL_CATCH if constexpr(false)
+#   define UL_TRY if (true)
+#   define UL_CATCH(x) else
 #endif
 
 #ifndef UL_ASSERT
@@ -97,8 +112,7 @@
     #   define UL_ASSERT(expr, msg) \
         do { \
             if((expr) == false) { \
-                std::cerr << "Assertion failed in " << __FILE__ << " at line " \
-                          << __LINE__ << ": " << msg << std::endl; \
+                fprintf(stderr, "Assertion failed in %s at line %d: %s\n", __FILE__, __LINE__, msg); \
                 std::abort(); \
             } \
         } while (0)
@@ -122,7 +136,7 @@
 
 
 #ifndef UL_NO_UNIQUE_ADDRESS
-    #if defined(__MSC_VER__)
+    #if defined(_MSC_VER)
     #   define UL_NO_UNIQUE_ADDRESS [[msvc::no_unique_address]]
     #else
     #   define UL_NO_UNIQUE_ADDRESS [[no_unique_address]]
@@ -133,14 +147,14 @@
 #ifndef UL_ASSUME
     #if __has_cpp_attribute(assume)
     #   define UL_ASSUME(expr) [[assume(expr)]]
-    #elif defined(__clang__)
+    #elif defined(__clang__) || (defined(__GNUC__) && __GNUC__ >= 13)
     #   define UL_ASSUME(expr) __builtin_assume(expr)
     #elif defined(__GNUC__)
-    #   define UL_ASSUME(expr) ((expr) ? static_cast<void>(0) : UL_UNREACHABLE())
+    #   define UL_ASSUME(expr) ((expr) ? void(0) : __builtin_unreachable())
     #elif defined(_MSC_VER)
     #   define UL_ASSUME(expr) __assume(expr)
     #else
-    #   define UL_ASSUME(expr) 0
+    #   define UL_ASSUME(expr) ((void)0)
     #endif
 #endif
 
