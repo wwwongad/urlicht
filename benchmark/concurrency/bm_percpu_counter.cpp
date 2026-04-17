@@ -7,7 +7,7 @@
 
 
 class AtomicCounter {
-    std::atomic<size_t> counter{};
+    alignas(64) std::atomic<size_t> counter{};
 public:
     void increment() noexcept {
         counter.fetch_add(1, std::memory_order_release);
