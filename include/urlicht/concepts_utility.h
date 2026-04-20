@@ -26,9 +26,6 @@ namespace urlicht::concepts {
 	template <typename From, typename To>
 	concept can_construct = std::constructible_from<To, From>;
 
-	template <typename T>
-	concept real_number = std::floating_point<T> || std::integral<T>;
-
 	// Checks if a type can be copy assigned by memcpy
 	// Note that std::is_trivially_copyable_v being true does not imply memcpy copy-assignable
 	// For example, the copy assignment operator may be deleted.
@@ -47,7 +44,7 @@ namespace urlicht::concepts {
 
     template <typename Iter, typename T>
 	concept compatible_iterator =
-            std::input_iterator<Iter> and
+            std::input_iterator<Iter> &&
             std::constructible_from<T, std::iter_reference_t<Iter>>;
 
 	// Always false for a proxy iterator
@@ -61,21 +58,15 @@ namespace urlicht::concepts {
 			std::input_iterator<Iter> &&
 			std::is_lvalue_reference_v<std::iter_reference_t<Iter>>;
 
+	// Checks if the range itself is a lvalue.
 	template <typename Rng>
 	concept lvalue_range =
-			std::ranges::input_range<Rng> &&
-			std::is_lvalue_reference_v<Rng>;
+			std::ranges::input_range<Rng> && std::is_lvalue_reference_v<Rng>;
 
-	// The elements in this range can be moved from
+	// Checks if the range itself is a rvalue. If so, the elements in this range can be moved from.
 	template <typename Rng>
 	concept rvalue_range =
-			std::ranges::input_range<Rng> &&
-			std::is_rvalue_reference_v<Rng>;
-
-	template <typename Sentinel, typename Iter>
-	concept sentinel_or_iter =
-		    std::input_iterator<Iter> &&
-		    (std::same_as<Sentinel, Iter> || std::sentinel_for<Sentinel, Iter>);
+			std::ranges::input_range<Rng> && std::is_rvalue_reference_v<Rng&&>;
 
 	template <typename T>
 	concept decays_to_ptr =
@@ -86,47 +77,32 @@ namespace urlicht::concepts {
 
 	/************************* CONCEPTS FOR COMPARISONS *************************/
 
-	template<typename Compare, typename T, typename U = T>
-	concept comparison_functor =
-    requires(Compare comp, const T& val, const U& val2) {
-		{ comp(val, val2) } -> std::convertible_to<bool>;
-	}
-    && requires(Compare comp, const T& val, const U& val2) {
-        { comp(val2, val) } -> std::convertible_to<bool>;
-    };
-
-	template<typename Compare, typename T, typename U = T>
-	concept one_way_comparison_functor =
-	requires(Compare comp, const T& val, const U& val2) {
-		{ comp(val, val2) } -> std::convertible_to<bool>;
-	};
-
+	// Requires that the comparison function takes const lvalue reference only
+	// To ensure that the instances are not modified
 	template <typename T, typename U = T>
 	concept less_comparable =
-		// Requires that the comparison function takes const lvalue reference only
-		// To ensure that the instances are not modified
-		requires(const std::remove_reference_t<T>& lhs, const std::remove_reference_t<U>& rhs) {
+		requires(const T& lhs, const U& rhs) {
 			{ lhs < rhs } -> std::convertible_to<bool>;
 		}
 	|| (concepts::decays_to_ptr<T> && concepts::decays_to_ptr<U>);
 
 	template <typename T, typename U = T>
 	concept greater_comparable =
-		requires(const std::remove_reference_t<T>& lhs, const std::remove_reference_t<U>& rhs) {
+		requires(const T& lhs, const U& rhs) {
 			{ lhs > rhs } -> std::convertible_to<bool>;
 		}
 	|| (concepts::decays_to_ptr<T> && concepts::decays_to_ptr<U>);
 
 	template <typename T, typename U = T>
 	concept equality_comparable = // Requires T() == U() only
-		requires(const std::remove_reference_t<T>& lhs, const std::remove_reference_t<U>& rhs) {
+		requires(const T& lhs, const U& rhs) {
 			{ lhs == rhs } -> std::convertible_to<bool>;
 		}
 	|| (concepts::decays_to_ptr<T> && concepts::decays_to_ptr<U>);
 
 	template <typename T, typename U = T>
 	concept inequality_comparable = // Requires T() != U() only
-		requires(const std::remove_reference_t<T>& lhs, const std::remove_reference_t<U>& rhs) {
+		requires(const T& lhs, const U& rhs) {
 			{ lhs != rhs } -> std::convertible_to<bool>;
 		}
 	|| (concepts::decays_to_ptr<T> && concepts::decays_to_ptr<U>);
@@ -169,25 +145,18 @@ namespace urlicht::concepts {
 	// Deprecates inefficient methods if their more efficient counterparts are available
 
 	template <typename Alloc>
-	concept allocator = std::default_initializable<Alloc> && requires {
+	concept allocator =
+		std::equality_comparable<Alloc> && std::copy_constructible<Alloc>
+	&& requires {
 		typename Alloc::value_type;
-		// Note the only type alias required from Alloc is value_type. std::allocator_traits generates
-		// the remaining ones (e.g. pointer, size_type) accordingly.
 	}
 	&& requires (Alloc alloc,
 			typename std::allocator_traits<Alloc>::pointer p,
 			typename std::allocator_traits<Alloc>::size_type n) {
 		{ std::allocator_traits<Alloc>::allocate(alloc, n) }
-		-> std::same_as<typename std::allocator_traits<Alloc>::pointer>;
+			-> std::same_as<typename std::allocator_traits<Alloc>::pointer>;
 		{ std::allocator_traits<Alloc>::deallocate(alloc, p, n) }
-		-> std::same_as<void>;
-#if __cplusplus >= 202302L
-		{ std::allocator_traits<Alloc>::allocate_at_least(alloc, n) }
-		-> std::same_as<std::allocation_result<
-				typename std::allocator_traits<Alloc>::pointer,
-				typename std::allocator_traits<Alloc>::size_type>>;
-#endif
-		// std::allocator_traits provides fallback methods for the remaining static methods (e.g. max_size )
+			-> std::same_as<void>;
 	};
 
     // Minimum requirement of a container
@@ -201,17 +170,35 @@ namespace urlicht::concepts {
       	typename Cont::value_type;
         typename Cont::size_type;
         typename Cont::difference_type;
+    	requires decayed<typename Cont::value_type>;
+    	requires std::unsigned_integral<typename Cont::size_type>;
+    	requires std::signed_integral<typename Cont::difference_type>;
+
         typename Cont::reference;
         typename Cont::const_reference;
-        typename Cont::pointer;
-        typename Cont::const_pointer;
-        typename Cont::iterator;
-        typename Cont::const_iterator;
+    	typename Cont::pointer;
+    	typename Cont::const_pointer;
+    	requires std::same_as<typename Cont::reference, typename Cont::value_type&>;
+    	requires std::same_as<typename Cont::const_reference, const typename Cont::value_type&>;
+    	requires std::same_as<typename Cont::pointer, typename Cont::value_type*>;
+    	requires std::same_as<typename Cont::const_pointer, const typename Cont::value_type*>;
+
+    	typename Cont::iterator;
+    	typename Cont::const_iterator;
+    	requires std::forward_iterator<typename Cont::iterator>;
+    	requires std::forward_iterator<typename Cont::const_iterator>;
+    	requires std::convertible_to<typename Cont::iterator, typename Cont::const_iterator>;
+    	requires std::same_as<std::iter_value_t<typename Cont::iterator>, typename Cont::value_type>;
+    	requires std::same_as<std::iter_value_t<typename Cont::const_iterator>, typename Cont::value_type>;
+    	requires std::same_as<std::iter_reference_t<typename Cont::iterator>, typename Cont::reference> ||
+				 std::same_as<std::iter_reference_t<typename Cont::iterator>, typename Cont::const_reference>;
+    	requires std::same_as<std::iter_reference_t<typename Cont::const_iterator>, typename Cont::const_reference>;
     }
 	&&	(!std::copy_constructible<typename Cont::value_type> || std::copy_constructible<Cont>)
 	&&	(!std::move_constructible<typename Cont::value_type> || std::move_constructible<Cont>)
 	&&  (!std::is_copy_assignable_v<typename Cont::value_type> || std::is_copy_assignable_v<Cont>)
 	&&  (!std::is_move_assignable_v<typename Cont::value_type> || std::is_move_assignable_v<Cont>)
+	&&  (!concepts::equality_comparable<typename Cont::value_type> || concepts::equality_comparable<Cont>)
     && requires(Cont& cont, Cont& cont2) {
         // Assignment
         { cont = cont2 } -> std::same_as<Cont&>;
@@ -238,9 +225,7 @@ namespace urlicht::concepts {
 	concept forward_list =
 		container<Cont> &&
 		std::forward_iterator<typename Cont::iterator> &&
-		// If value_type is comparable, then forward_list is comparable
-		(!concepts::equality_comparable<typename Cont::value_type> || concepts::equality_comparable<Cont>) &&
-		(!std::three_way_comparable<typename Cont::value_type> || std::three_way_comparable<Cont>)
+		std::forward_iterator<typename Cont::const_iterator>
 	&& requires {
 		typename Cont::allocator_type;
 	}
@@ -267,10 +252,7 @@ namespace urlicht::concepts {
 		{ c.pop_front() } -> std::same_as<void>;
 		{ c.resize(size, val) } -> std::same_as<void>;
 		{ c.clear() } -> std::same_as<void>;
-#if __cplusplus >= 202302L
-		{ c.insert_range_after(cpos, r) } -> std::same_as<void>;
-		{ c.prepend_range(r) } -> std::same_as<void>;
-#endif
+
 		// Operations
 		{ c.merge(c) } -> std::same_as<void>;
 		{ c.merge(std::move(c)) } -> std::same_as<void>;
@@ -289,8 +271,7 @@ namespace urlicht::concepts {
 	concept list =
 		container<Cont> &&
 		std::bidirectional_iterator<typename Cont::iterator> &&
-		std::bidirectional_iterator<typename Cont::const_iterator> &&
-		(!concepts::equality_comparable<typename Cont::value_type> || concepts::equality_comparable<Cont>)
+		std::bidirectional_iterator<typename Cont::const_iterator>
 	&& requires {
 		typename Cont::allocator_type;
 		typename Cont::reverse_iterator;
@@ -330,11 +311,7 @@ namespace urlicht::concepts {
 		{ c.pop_back() } -> std::same_as<void>;
 		{ c.resize(size, value) } -> std::same_as<void>;
 		{ c.clear() } -> std::same_as<void>;
-#if __cplusplus >= 202302L
-		{ c.append_range(c) } -> std::same_as<void>;
-		{ c.insert_range(c) } -> std::convertible_to<typename Cont::iterator>;
-		{ c.prepend_range(c) } -> std::same_as<void>;
-#endif
+
 		// Operations
 		{ c.merge(c) } -> std::same_as<void>;
 		{ c.merge(std::move(c)) } -> std::same_as<void>;
@@ -354,9 +331,7 @@ namespace urlicht::concepts {
 	concept random_access_container =
 	    container<Cont> &&
 	    std::random_access_iterator<typename Cont::iterator> &&
-	    std::random_access_iterator<typename Cont::const_iterator> &&
-	    (!concepts::equality_comparable<typename Cont::value_type> || concepts::equality_comparable<Cont>) &&
-	    (!std::three_way_comparable<typename Cont::value_type> || std::three_way_comparable<Cont>)
+	    std::random_access_iterator<typename Cont::const_iterator>
     && requires {
 		// Some random access container may not have an allocator
         typename Cont::reverse_iterator;
@@ -396,10 +371,6 @@ namespace urlicht::concepts {
         { c.pop_back() } -> std::same_as<void>;
         { c.resize(size, value) } -> std::same_as<void>;
         { c.clear() } -> std::same_as<void>;
-#if __cplusplus >= 202302L
-		{ c.append_range(c) } -> std::same_as<void>;
-		{ c.insert_range(c) } -> std::convertible_to<typename Cont::iterator>;
-#endif
     }
     && (!std::default_initializable<typename Cont::value_type> ||
         requires (Cont& c, typename Cont::size_type size) { c.resize(size); });
@@ -426,11 +397,8 @@ namespace urlicht::concepts {
 		typename Deq::allocator_type;
 	}
 	&& requires(Deq& d, typename Deq::value_type value) {
-		{ d.emplace_front(value) } -> std::same_as<typename Deq::value_type>;
-		{ d.emplace_front(std::move(value)) } -> std::same_as<typename Deq::value_type>;
-#if __cplusplus >= 202302L
-		{ d.prepend_range(d) } -> std::same_as<void>;
-#endif
+		{ d.emplace_front(value) } -> std::same_as<typename Deq::reference>;
+		{ d.emplace_front(std::move(value)) } -> std::same_as<typename Deq::reference>;
 	};
 
 	// Utility for optional reservation
@@ -481,10 +449,6 @@ namespace urlicht::concepts {
         { c.clear() } -> std::same_as<void>;
 		{ c.merge(c) } -> std::same_as<void>;
 		{ c.merge(std::move(c)) } -> std::same_as<void>;
-#if __cplusplus >= 202302L
-		{ c.insert_range(c) } -> std::same_as<void>;
-		{ c.insert_range(std::move(c) } -> std::same_as<void>;
-#endif
 
         // Lookup
         { c.find(key) } -> std::same_as<typename Cont::iterator>;
@@ -535,8 +499,8 @@ namespace urlicht::concepts {
 
 
 	// Compatible with non-bucket-based implementations
-	// Examples: std::unordered_map, boost::unordered_map, folly::F14FastMap, absl::flat_hash_map
-	// Does NOT include atomic hashmaps like folly::AtomicHashMap
+	// Examples: std::unordered_map, boost::unordered_flat_map, folly::F14FastMap, absl::flat_hash_map
+	// Does NOT include concurrent hashmaps
 	template <typename Cont>
 	concept unordered_map =
 		container<Cont> &&
@@ -592,10 +556,6 @@ namespace urlicht::concepts {
         { c.clear() } -> std::same_as<void>;
         { c.merge(c) } -> std::same_as<void>;
         { c.merge(std::move(c)) } -> std::same_as<void>;
-#if __cplusplus >= 202302L
-		{ c.insert_range(c) } -> std::same_as<void>;
-		{ c.insert_range(std::move(c) } -> std::same_as<void>;
-#endif
 
         // Lookup
         { c.find(key) } -> std::same_as<typename Cont::iterator>;
@@ -671,7 +631,7 @@ namespace urlicht::concepts {
         { std::as_const(c).size() } -> std::same_as<typename Cont::size_type>;
 
         // Observers
-        { c.key_comp() } -> std::same_as<typename Cont::key_equal>;
+        { c.key_comp() } -> std::same_as<typename Cont::key_compare>;
 		{ c.value_comp() } -> std::same_as<typename Cont::value_compare>;
 
         // Element Access
@@ -686,11 +646,10 @@ namespace urlicht::concepts {
 		{ c.try_emplace(std::move(key), val) } -> std::same_as<std::pair<typename Cont::iterator, bool>>;
 		{ c.try_emplace(std::move(key), std::move(val)) } -> std::same_as<std::pair<typename Cont::iterator, bool>>;
 
-		{ c.try_emplace(cpos, key, val) } -> std::same_as<std::pair<typename Cont::iterator, bool>>;
-		{ c.try_emplace(cpos, key, std::move(val)) } -> std::same_as<std::pair<typename Cont::iterator, bool>>;
-		{ c.try_emplace(cpos, std::move(key), val) } -> std::same_as<std::pair<typename Cont::iterator, bool>>;
-		{ c.try_emplace(cpos, std::move(key), std::move(val)) }
-					-> std::same_as<std::pair<typename Cont::iterator, bool>>;
+		{ c.try_emplace(cpos, key, val) } -> std::same_as<typename Cont::iterator>;
+		{ c.try_emplace(cpos, key, std::move(val)) } -> std::same_as<typename Cont::iterator>;
+		{ c.try_emplace(cpos, std::move(key), val) } -> std::same_as<typename Cont::iterator>;
+		{ c.try_emplace(cpos, std::move(key), std::move(val)) } -> std::same_as<typename Cont::iterator>;
 
         { c.insert_or_assign(key, val) } -> std::same_as<std::pair<typename Cont::iterator, bool>>;
 		{ c.insert_or_assign(key, std::move(val)) } -> std::same_as<std::pair<typename Cont::iterator, bool>>;
@@ -698,11 +657,10 @@ namespace urlicht::concepts {
 		{ c.insert_or_assign(std::move(key), std::move(val)) }
 					-> std::same_as<std::pair<typename Cont::iterator, bool>>;
 
-		{ c.insert_or_assign(cpos, key, val) } -> std::same_as<std::pair<typename Cont::iterator, bool>>;
-		{ c.insert_or_assign(cpos, key, std::move(val)) } -> std::same_as<std::pair<typename Cont::iterator, bool>>;
-		{ c.insert_or_assign(cpos, std::move(key), val) } -> std::same_as<std::pair<typename Cont::iterator, bool>>;
-		{ c.insert_or_assign(cpos, std::move(key), std::move(val)) }
-					-> std::same_as<std::pair<typename Cont::iterator, bool>>;
+		{ c.insert_or_assign(cpos, key, val) } -> std::same_as<typename Cont::iterator>;
+		{ c.insert_or_assign(cpos, key, std::move(val)) } -> std::same_as<typename Cont::iterator>;
+		{ c.insert_or_assign(cpos, std::move(key), val) } -> std::same_as<typename Cont::iterator>;
+		{ c.insert_or_assign(cpos, std::move(key), std::move(val)) } -> std::same_as<typename Cont::iterator>;
 
 		// Insert - overloads not covered by the above only
         { c.insert(cpos, cpos) } -> std::same_as<void>; // Since cpos is also an input iterator
@@ -720,10 +678,6 @@ namespace urlicht::concepts {
         { c.clear() } -> std::same_as<void>;
         { c.merge(c) } -> std::same_as<void>;
         { c.merge(std::move(c)) } -> std::same_as<void>;
-#if __cplusplus >= 202302L
-		{ c.insert_range(c) } -> std::same_as<void>;
-		{ c.insert_range(std::move(c) } -> std::same_as<void>;
-#endif
 
         // Lookup
         { c.find(key) } -> std::same_as<typename Cont::iterator>;
@@ -803,5 +757,6 @@ namespace urlicht::concepts {
     };
 
 }
+
 
 #endif //URLICHT_CONCEPTS_UTILITY_H
