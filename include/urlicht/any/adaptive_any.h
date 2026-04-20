@@ -1,7 +1,7 @@
 #ifndef URLICHT_ADAPTIVE_ANY
 #define URLICHT_ADAPTIVE_ANY
 
-#include <urlicht/any/detail/utils.h>
+#include <urlicht/internal/tag.h>
 #include <urlicht/concepts_utility.h>
 #include <memory>
 #include <type_traits>
@@ -39,49 +39,51 @@ namespace urlicht {
     template <std::size_t OptimizeForSize, std::size_t OptimizeForAlign>
     class adaptive_any {
     private:
-        using storage_type = union {
+        union storage_type {
             alignas(OptimizeForAlign) std::byte aligned_buffer [OptimizeForSize];
             void* heap_ptr;
         };
 
-        template <typename VTy>
-        static constexpr bool use_sbo_v = any_detail::is_small_obj_v<VTy, OptimizeForSize, OptimizeForAlign>;
+        template <typename T>
+        static constexpr bool use_sbo_v =
+            sizeof(T) <= OptimizeForSize && alignof(T) <= OptimizeForAlign && std::is_nothrow_move_constructible_v<T>;
+
+        struct vtable_t {
+            void (*destroy) (storage_type&) noexcept = nullptr;
+            void (*move) (storage_type&, storage_type&) noexcept = nullptr;
+            void (*clone) (const storage_type&, storage_type&) = nullptr;
+            const std::type_info* (*type_info) () noexcept = nullptr;
+            bool (*in_sbo) () noexcept = nullptr;
+        };
 
         template <typename T, bool InSBO>
-        static constexpr any_detail::vtable vtable_for = {
-            .destroy = [](void* src) noexcept {
-                auto* storage = static_cast<storage_type*>(src);
+        static constexpr vtable_t vtable_for = {
+            .destroy = [](storage_type& src) noexcept {
                 if constexpr (InSBO) {
-                    if constexpr (!std::is_trivially_destructible_v<T>) {
-                        std::destroy_at(reinterpret_cast<T*>(storage->aligned_buffer));
-                    }
+                    std::destroy_at(reinterpret_cast<T*>(src.aligned_buffer));
                 } else {
-                    std::default_delete<T>{}(reinterpret_cast<T*>(storage->heap_ptr));
+                    delete static_cast<T*>(src.heap_ptr);
                 }
             },
             // If the object may throw in move construction, it is placed on the heap to
             // ensure nothrow move operation of adaptive_any
-            .move = [](void* src, void* dest) noexcept {
-                auto* src_ = static_cast<storage_type*>(src);
-                auto* dest_ = static_cast<storage_type*>(dest);
+            .move = [](storage_type& src, storage_type& dest) noexcept {
                 if constexpr (InSBO) {
-                    auto* src_value = reinterpret_cast<T*>(src_->aligned_buffer);
-                    std::construct_at(reinterpret_cast<T*>(dest_->aligned_buffer), std::move(*src_value));
+                    auto* src_value = reinterpret_cast<T*>(src.aligned_buffer);
+                    std::construct_at(reinterpret_cast<T*>(dest.aligned_buffer), std::move(*src_value));
                     std::destroy_at(src_value);
                 } else {
-                    dest_->heap_ptr = src_->heap_ptr;
-                    src_->heap_ptr = nullptr;
+                    dest.heap_ptr = src.heap_ptr;
+                    src.heap_ptr = nullptr;
                 }
             },
-            .clone = [](const void* src, void* dest) {
-                const auto* src_ = static_cast<const storage_type*>(src);
-                auto* dest_ = static_cast<storage_type*>(dest);
+            .clone = [](const storage_type& src, storage_type& dest) {
                 if constexpr (InSBO) {
-                    const auto* src_value = reinterpret_cast<const T*>(src_->aligned_buffer);
-                    std::construct_at(reinterpret_cast<T*>(dest_->aligned_buffer), *src_value);
+                    const auto* src_value = reinterpret_cast<const T*>(src.aligned_buffer);
+                    std::construct_at(reinterpret_cast<T*>(dest.aligned_buffer), *src_value);
                 } else {
-                    const auto* src_value = reinterpret_cast<const T*>(src_->heap_ptr);
-                    dest_->heap_ptr = new T(*src_value);
+                    const auto* src_value = reinterpret_cast<const T*>(src.heap_ptr);
+                    dest.heap_ptr = new T(*src_value);
                 }
             },
             .type_info = []() noexcept { return &typeid(T); },
@@ -106,12 +108,12 @@ namespace urlicht {
         }
 
         constexpr void copy_from(const adaptive_any& other) {
-            other.vtable_->clone(&other.content_, &content_);
+            other.vtable_->clone(other.content_, content_);
             vtable_ = other.vtable_;
         }
 
         constexpr void move_from(adaptive_any&& other) noexcept {
-            other.vtable_->move(&other.content_, &content_);
+            other.vtable_->move(other.content_, content_);
             vtable_ = other.vtable_;
             other.vtable_ = nullptr;
         }
@@ -143,7 +145,7 @@ namespace urlicht {
         template <typename T, typename... Args>
         requires (!is_urlicht_adaptive_any_v<std::remove_cvref_t<T>>) &&
                   std::constructible_from<std::remove_cvref_t<T>, Args&&...>
-        constexpr adaptive_any(any_detail::inplace_t<T>, Args&&... args)
+        constexpr adaptive_any(detail::inplace_t<T>, Args&&... args)
         noexcept(std::is_nothrow_constructible_v<T, Args&&...>) {
             this->template construct<T>(true, std::forward<Args>(args)...);
         }
@@ -151,27 +153,27 @@ namespace urlicht {
         template <typename T, typename... Args>
         requires (!is_urlicht_adaptive_any_v<std::remove_cvref_t<T>>) &&
                   std::constructible_from<std::remove_cvref_t<T>, Args&&...>
-        explicit constexpr adaptive_any(any_detail::inplace_cond_t<T>, const bool cond, Args&&... args)
+        explicit constexpr adaptive_any(detail::inplace_cond_t<T>, const bool cond, Args&&... args)
         noexcept(std::is_nothrow_constructible_v<T, Args&&...>) {
             this->template construct<T>(cond, std::forward<Args>(args)...);
         }
 
         constexpr adaptive_any(const adaptive_any& other) {
-            if (other.has_value()) {
+            if (other.has_value()) [[likely]] {
                 this->copy_from(other);
             }
         }
 
         constexpr adaptive_any(adaptive_any&& other) noexcept {
-            if (other.has_value()) {
+            if (other.has_value()) [[likely]] {
                 this->move_from(std::move(other));
             }
         }
 
         constexpr adaptive_any& operator=(const adaptive_any& other) {
-            if (this != &other) {
+            if (this != &other) [[likely]] {
                 this->reset();
-                if (other.has_value()) {
+                if (other.has_value()) [[likely]] {
                     this->copy_from(other);
                 }
             }
@@ -179,9 +181,9 @@ namespace urlicht {
         }
 
         constexpr adaptive_any& operator=(adaptive_any&& other) noexcept {
-            if (this != &other) {
+            if (this != &other) [[likely]]{
                 this->reset();
-                if (other.has_value()) {
+                if (other.has_value()) [[likely]] {
                     this->move_from(std::move(other));
                 }
             }
@@ -195,8 +197,8 @@ namespace urlicht {
         /************************* MODIFIERS **************************/
 
         constexpr void reset() noexcept {
-            if (this->has_value()) {
-                vtable_->destroy(&content_);
+            if (this->has_value()) [[likely]] {
+                vtable_->destroy(content_);
                 vtable_ = nullptr;
             }
         }
@@ -216,10 +218,10 @@ namespace urlicht {
         }
 
         constexpr void swap(adaptive_any& other) noexcept {
-            if (this == &other) {
+            if (this == &other) [[unlikely]] {
                 return;
             }
-            if (!this->has_value() && !other.has_value()) { // Both empty
+            if (!this->has_value() && !other.has_value()) [[unlikely]] { // Both empty
                 return;
             }
             if (!other.has_value()) {
@@ -275,7 +277,7 @@ namespace urlicht {
     private:
         // Data member
         storage_type content_;
-        const any_detail::vtable* vtable_{};
+        const vtable_t* vtable_{};
     };
 
 
