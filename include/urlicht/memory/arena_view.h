@@ -1,4 +1,3 @@
-
 #ifndef URLICHT_ARENA_VIEW_H
 #define URLICHT_ARENA_VIEW_H
 #include <urlicht/memory/detail/arena_fwd.h>
@@ -34,7 +33,7 @@ namespace urlicht {
         using propagate_on_container_move_assignment = std::true_type;
         using propagate_on_container_swap = std::true_type;
 
-        template <concepts::object U>
+        template <typename U>
         struct rebind {
             using other = arena_view<U, UnsafeAllocInit, Arena>;
         };
@@ -98,11 +97,28 @@ namespace urlicht {
         static constexpr void deallocate([[maybe_unused]] const value_type* p,
                                          [[maybe_unused]] const size_type n) noexcept { }
 
+        [[nodiscard]] constexpr void* allocate_bytes(const size_type nbytes,
+                                                     const size_type align = alignof(std::max_align_t)) {
+            if constexpr (UnsafeAllocInit) {
+                return ptr_arena_->allocate(nbytes, align);
+            } else {
+                auto* ptr = ptr_arena_->allocate(nbytes, align);
+                if (ptr == nullptr) [[unlikely]] {
+                    throw std::bad_alloc{};
+                }
+                return ptr;
+            }
+        }
+
+        static constexpr void deallocate_bytes([[maybe_unused]] const value_type* p,
+                                               [[maybe_unused]] const size_type n,
+                                               [[maybe_unused]] const size_type align) noexcept { }
+
         /**
-         * @brief Returns a non-const pointer to the underlying arena for rebinding purpose.
+         * @brief Returns a non-const reference to the underlying arena for rebinding purpose.
          */
-        [[nodiscard]] constexpr arena_type* get_arena() const noexcept {
-            return ptr_arena_;
+        [[nodiscard]] constexpr arena_type& get_arena() const noexcept {
+            return *ptr_arena_;
         }
 
         [[nodiscard]] friend constexpr bool operator==(const arena_view& lhs,
