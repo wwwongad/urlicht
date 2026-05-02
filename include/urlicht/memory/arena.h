@@ -289,7 +289,7 @@ namespace urlicht {
          *
          * @param bytes number of bytes to allocate.
          * @param align alignment requirement for the allocation, defaults to alignof(max_align_t).
-         * @return void pointer to the allocated memory.
+         * @return std::allocation_result struct (or equivalent)
          *
          * @note UB if initial_buffer_.start == nullptr or the buffer is undersized.
          */
@@ -310,7 +310,7 @@ namespace urlicht {
          *
          * @param bytes Number of bytes requested.
          * @param align Alignment requirement. Defaults to alignof(std::max_align_t).
-         * @return void pointer to the allocated memory on success, nullptr on failure.
+         * @return std::allocation_result struct (or equivalent)
          */
         [[nodiscard]] constexpr allocation_result allocate(size_t bytes, const size_t align = default_align)
         noexcept(!UseUpstream) {
