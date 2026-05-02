@@ -10,6 +10,7 @@
 #include <limits>
 #include <algorithm>
 #include <concepts>
+#include <variant>
 
 namespace urlicht {
 
@@ -42,6 +43,7 @@ namespace urlicht {
         static_assert(std::same_as<typename UpstreamAlloc::value_type, std::byte>,
             "Upstream allocator must allocate std::byte");
     public:
+        using allocation_result = memory_detail::allocation_result_impl<void*>;
         using upstream_allocator = UpstreamAlloc;
         using upstream_traits = std::allocator_traits<upstream_allocator>;
     private:
@@ -58,30 +60,34 @@ namespace urlicht {
 
         // Helper methods
         template <bool IsInitial, typename Chunk>
-        static constexpr void* try_alloc_(Chunk& chunk, const size_t bytes, const size_t align) noexcept {
+        [[nodiscard]]
+        static constexpr allocation_result try_alloc_(Chunk& chunk, const size_t bytes, const size_t align) noexcept {
             if constexpr (IsInitial) {
                 if (chunk.start == nullptr) [[unlikely]] {
-                    return nullptr;
+                    return {nullptr, 0U};
                 }
             }
+            // This checks whether (chunk.curr - bytes) results in overflow.
             if (const auto addr = reinterpret_cast<uintptr_t>(chunk.curr); addr < bytes) [[unlikely]] {
-                return nullptr;
+                return {nullptr, 0U};
             }
             auto* new_curr =
                 reinterpret_cast<std::byte*>(reinterpret_cast<uintptr_t>(chunk.curr - bytes) & ~(align - 1));
 
             if (new_curr < chunk.start) [[unlikely]] {
-                return nullptr;
+                return {nullptr, 0U};
             }
-            return chunk.curr = new_curr;
+            const size_t size = chunk.curr - new_curr;
+            return {chunk.curr = new_curr, size};
         }
 
         template <typename Chunk>
-        static constexpr void* unchecked_alloc_(Chunk& chunk, const size_t bytes, const size_t align) noexcept {
+        static constexpr allocation_result
+        unchecked_alloc_(Chunk& chunk, const size_t bytes, const size_t align) noexcept {
             auto* new_curr =
                 reinterpret_cast<std::byte*>(reinterpret_cast<uintptr_t>(chunk.curr - bytes) & ~(align - 1));
-
-            return chunk.curr = new_curr;
+            const size_t size = chunk.curr - new_curr;
+            return {chunk.curr = new_curr, size};
         }
 
     public:
@@ -150,7 +156,7 @@ namespace urlicht {
          */
         constexpr arena(void* buffer, const size_t buffer_size, upstream_allocator upstream)
             : upstream_(std::move(upstream)) {
-            if (buffer == nullptr) [[unlikely]] {
+            if (buffer == nullptr) {
                 if (buffer_size != 0U) [[likely]] {
                     initial_buffer_.start = upstream_traits::allocate(upstream_, buffer_size);
                     initial_buffer_.curr = initial_buffer_.start + buffer_size;
@@ -288,9 +294,11 @@ namespace urlicht {
          * @note UB if initial_buffer_.start == nullptr or the buffer is undersized.
          */
         [[nodiscard]]
-        constexpr void* unchecked_allocate_initial(const size_t bytes,
-                                                   const size_t align = default_align) noexcept {
+        constexpr allocation_result unchecked_allocate_initial(const size_t bytes,
+                                                               const size_t align = default_align) noexcept {
+            UL_ASSERT(initial_buffer_.start != nullptr, "Initial buffer is null");
             UL_ASSERT(align != 0U && (align & (align - 1)) == 0, "align must be non-zero power of two.");
+            UL_ASSUME(align != 0U && (align & (align - 1)) == 0);
             return unchecked_alloc_(initial_buffer_, bytes, align);
         }
 
@@ -304,21 +312,22 @@ namespace urlicht {
          * @param align Alignment requirement. Defaults to alignof(std::max_align_t).
          * @return void pointer to the allocated memory on success, nullptr on failure.
          */
-        [[nodiscard]] constexpr void* allocate(size_t bytes, const size_t align = default_align)
+        [[nodiscard]] constexpr allocation_result allocate(size_t bytes, const size_t align = default_align)
         noexcept(!UseUpstream) {
             UL_ASSERT(align != 0U && (align & (align - 1)) == 0, "align must be non-zero power of two.");
+            UL_ASSUME(align != 0U && (align & (align - 1)) == 0);
 
-            if (void* res = try_alloc_<true>(initial_buffer_, bytes, align)) {
-                return res;
+            if (auto [ptr, count] = try_alloc_<true>(initial_buffer_, bytes, align); ptr) [[likely]] {
+                return {ptr, count};
             }
 
             if constexpr (UseUpstream) { // fall-back to upstream resource
                 constexpr auto footer_size = sizeof(memory_detail::chunk_footer);
                 constexpr auto footer_align = alignof(memory_detail::chunk_footer);
 
-                if (chunk_footer_ != nullptr) {
-                    if (void* result = try_alloc_<false>(*chunk_footer_, bytes, align)) {
-                        return result;
+                if (chunk_footer_ != nullptr) [[likely]] {
+                    if (auto [ptr, count] = try_alloc_<false>(*chunk_footer_, bytes, align); ptr) {
+                        return {ptr, count};
                     }
                 }
 
@@ -357,8 +366,8 @@ namespace urlicht {
                 chunk_footer_ = footer;
 
                 return unchecked_alloc_(*chunk_footer_, bytes, align);
-            } else { // Not using upstream resource
-                return nullptr;
+            } else {
+                return {nullptr, 0U};
             }
         }
 
@@ -374,7 +383,5 @@ namespace urlicht {
     };
 
 }
-
-
 
 #endif //URLICHT_ARENA_H
