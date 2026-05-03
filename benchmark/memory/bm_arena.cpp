@@ -4,8 +4,7 @@
 #include <map>
 #include <string>
 #include <memory_resource>
-#include <urlicht/memory/arena.h>
-
+#include <urlicht/memory/arena_view.h>
 
 constexpr size_t KB = 1024;
 constexpr size_t MB = 1024 * 1024;
@@ -22,9 +21,9 @@ public:
 
     void* allocate(size_t bytes, size_t alignment) noexcept(Unsafe) {
         if constexpr (Unsafe) {
-            return arena.unchecked_allocate_initial(bytes, alignment);
+            return arena.unchecked_allocate_initial(bytes, alignment).ptr;
         } else {
-            return arena.allocate(bytes, alignment);
+            return arena.allocate(bytes, alignment).ptr;
         }
     }
 
@@ -299,4 +298,3 @@ BENCHMARK_TEMPLATE(BM_Scenario_CacheLocality, CacheLocality_UrlichtArena)
     ->Name("Locality/Urlicht")->ReportAggregatesOnly(true)
     ->Range(1024, 1024 * 256)->Repetitions(10);
 
-BENCHMARK_MAIN();
