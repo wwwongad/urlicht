@@ -32,13 +32,35 @@ TEST(ArenaView, BasicAllocation) {
     // Heap chunk fall-back
     urlicht::arena arena(1024 * sizeof(int));
     urlicht::arena_view<int> view(arena);
+
     auto* ptr = view.allocate(2048);
     EXPECT_NE(ptr, nullptr);
     auto& init = arena.get_initial_buffer();
     EXPECT_EQ(init.end(), init.curr);  // Unaltered
+
     auto* chunk = arena.get_chunk_footer();
     EXPECT_NE(chunk, nullptr);
     EXPECT_GE(chunk->actual_buffer_size(), 2048 * sizeof(int));
+}
+
+TEST(ArenaView, AllocateAtLeast) {
+    urlicht::arena<false> arena(256);
+    urlicht::arena_view<int, false, decltype(arena)> view(arena);
+
+    auto& init = arena.get_initial_buffer();
+    auto* before_curr = init.curr;
+
+    constexpr size_t n = 7;
+    auto [ptr, count] = view.allocate_at_least(n);
+
+    EXPECT_NE(ptr, nullptr);
+    EXPECT_TRUE(is_aligned(ptr, alignof(int)));
+    EXPECT_GE(count, n);
+
+    const auto bytes_consumed = static_cast<size_t>(before_curr - init.curr);
+
+    EXPECT_GE(bytes_consumed, count * sizeof(int));
+    EXPECT_LT(bytes_consumed, (count + 1) * sizeof(int));
 }
 
 struct large_align {
@@ -59,6 +81,7 @@ TEST(ArenaView, MultiAlignment) {
     test_align(1.23);
     test_align(large_align{1});
 }
+
 
 TEST(ArenaView, WithoutUpstream) {
     urlicht::arena<false> arena(2048);
@@ -83,6 +106,39 @@ TEST(ArenaView, ExtremeSizes) {
     void* p{};
     EXPECT_THROW(p = view.allocate(large_size), std::bad_alloc);
     EXPECT_THROW(p = view.allocate(max_size), std::bad_array_new_length);
+    EXPECT_EQ(p, nullptr);
+}
+
+TEST(ArenaView, AllocateBytes) {
+    urlicht::arena arena(1024);
+    urlicht::arena_view<std::byte> view(arena);
+
+    void* p1 = view.allocate_bytes(48, 16);
+    ASSERT_NE(p1, nullptr);
+    EXPECT_TRUE(is_aligned(p1, 16));
+
+    void* p2 = view.allocate_bytes(4096, 64);
+    ASSERT_NE(p2, nullptr);
+    EXPECT_TRUE(is_aligned(p2, 64));
+
+    auto* chunk = arena.get_chunk_footer();
+    EXPECT_NE(chunk, nullptr);
+    EXPECT_GE(chunk->actual_buffer_size(), 4096u);
+}
+
+TEST(ArenaView, AllocateBytesOnExhaustion) {
+    // Safe mode
+    urlicht::arena<false> arena(128);
+    urlicht::arena_view<std::byte, false, decltype(arena)> view(arena);
+    ASSERT_NE(view.allocate_bytes(128, 1), nullptr);
+    EXPECT_THROW((void)view.allocate_bytes(1, 1), std::bad_alloc);
+
+    // Unsafe mode
+    urlicht::arena<false> arena2(64);
+    urlicht::arena_view<std::byte, true, decltype(arena)> view2(arena2);
+    void* p = view2.allocate_bytes(64, 1);
+    EXPECT_NE(p, nullptr);
+    EXPECT_NO_THROW(p = view2.allocate_bytes(1, 1););
     EXPECT_EQ(p, nullptr);
 }
 
