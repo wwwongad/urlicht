@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
-#include <urlicht/any/adaptive_any.h>
 #include <urlicht/functional/adaptive_function.h>
+#include <memory>
+#include <type_traits>
 
 using namespace urlicht;
 
@@ -418,4 +419,102 @@ TEST(AdaptiveFunction, CorrectArgForward) {
     f2(std::move(v2));
     EXPECT_TRUE(v2.empty());
     EXPECT_EQ(v2.size(), 0);
+}
+
+////////////////////////////////////////////
+///     adaptive_move_only_function     ///
+///////////////////////////////////////////
+
+
+struct move_only_f {
+    std::unique_ptr<int> p;
+
+    explicit move_only_f(int v) : p(std::make_unique<int>(v)) {}
+    move_only_f(move_only_f&&) noexcept = default;
+    move_only_f& operator=(move_only_f&&) noexcept = default;
+
+    move_only_f(const move_only_f&) = delete;
+    move_only_f& operator=(const move_only_f&) = delete;
+
+    int operator()() noexcept { return *p; }
+};
+
+using move_only_func = urlicht::adaptive_move_only_function<int(), 64, alignof(std::max_align_t)>;
+
+static_assert(!std::copy_constructible<move_only_func>);
+static_assert(!std::is_copy_assignable_v<move_only_func>);
+static_assert(std::move_constructible<move_only_func>);
+static_assert(std::is_move_assignable_v<move_only_func>);
+static_assert(urlicht::is_urlicht_adaptive_function_v<move_only_func>);
+
+TEST(AdaptiveMoveOnlyFunction, ConstructAndInvoke) {
+    move_only_func f = move_only_f{42};
+    EXPECT_TRUE(f);
+    EXPECT_TRUE(f.in_sbo());
+    EXPECT_EQ(f(), 42);
+}
+
+TEST(AdaptiveMoveOnlyFunction, MoveConstructor) {
+    move_only_func f1 = move_only_f{7};
+    EXPECT_TRUE(f1);
+
+    move_only_func f2 = std::move(f1);
+    EXPECT_FALSE(f1);
+    EXPECT_TRUE(f2);
+    EXPECT_EQ(f2(), 7);
+}
+
+TEST(AdaptiveMoveOnlyFunction, MoveAssignment) {
+    move_only_func src = move_only_f{111};
+    move_only_func dst = move_only_f{222};
+
+    EXPECT_TRUE(src);
+    EXPECT_TRUE(dst);
+
+    dst = std::move(src);
+    EXPECT_FALSE(src);
+    EXPECT_TRUE(dst);
+    EXPECT_EQ(dst(), 111);
+}
+
+TEST(AdaptiveMoveOnlyFunction, Emplace) {
+    move_only_func f;
+    auto& ref = f.emplace<move_only_f>(99);
+
+    EXPECT_TRUE(f);
+    EXPECT_EQ(ref(), 99);
+    EXPECT_EQ(f(), 99);
+}
+
+TEST(AdaptiveMoveOnlyFunction, MoveOnlyLambda) {
+    auto lam = [p = std::make_unique<int>(5)]() mutable noexcept {
+        return (*p)++;
+    };
+
+    move_only_func f(std::move(lam));
+    EXPECT_TRUE(f);
+    EXPECT_EQ(f(), 5);
+    EXPECT_EQ(f(), 6);
+}
+
+TEST(AdaptiveMoveOnlyFunction, Swap) {
+    move_only_func a;
+    move_only_func b;
+
+    swap(a, b);
+    EXPECT_FALSE(a);
+    EXPECT_FALSE(b);
+
+    a = move_only_f{42};
+    swap(a, b);
+    EXPECT_FALSE(a);
+    EXPECT_TRUE(b);
+    EXPECT_EQ(b(), 42);
+
+    a = move_only_f{7};
+    swap(a, b);
+    EXPECT_TRUE(a);
+    EXPECT_TRUE(b);
+    EXPECT_EQ(a(), 42);
+    EXPECT_EQ(b(), 7);
 }
