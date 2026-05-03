@@ -32,6 +32,7 @@ namespace urlicht {
         using propagate_on_container_copy_assignment = std::true_type;
         using propagate_on_container_move_assignment = std::true_type;
         using propagate_on_container_swap = std::true_type;
+        using allocation_result = memory_detail::allocation_result_impl<value_type*>;
 
         template <typename U>
         struct rebind {
@@ -60,7 +61,7 @@ namespace urlicht {
 
         template <typename U>
         constexpr arena_view(const arena_view<U, UnsafeAllocInit, Arena>& other) noexcept
-        : ptr_arena_(other.get_arena()) {
+        : ptr_arena_(&other.get_arena()) {
             UL_ASSERT(ptr_arena_ != nullptr, "Pointer to arena must not be null");
         }
 
@@ -69,16 +70,14 @@ namespace urlicht {
 
         constexpr ~arena_view() noexcept = default;
 
-        // Core Methods
-        [[nodiscard]] constexpr value_type* allocate(const size_type n)
+
+        [[nodiscard]] constexpr allocation_result allocate_at_least(const size_type n)
         noexcept(UnsafeAllocInit) {
-            UL_ASSUME(ptr_arena_ != nullptr);
             if constexpr (UnsafeAllocInit) {
-                auto* raw_bytes =
-                    ptr_arena_->unchecked_allocate_initial(
-                        n * sizeof(value_type), alignof(value_type)
-                    );
-                return static_cast<value_type*>(raw_bytes);
+                auto [ptr, bytes] = ptr_arena_->unchecked_allocate_initial(
+                    n * sizeof(value_type), alignof(value_type)
+                );
+                return {static_cast<value_type*>(ptr), bytes / sizeof(value_type)};
             } else {
                 auto bad_size = [](const size_type size) {
                     return size > std::numeric_limits<size_type>::max() / sizeof(value_type);
@@ -86,12 +85,16 @@ namespace urlicht {
                 if (bad_size(n)) [[unlikely]] {
                     throw std::bad_array_new_length{};
                 }
-                auto* raw_bytes = ptr_arena_->allocate(n * sizeof(value_type), alignof(value_type));
-                if (raw_bytes == nullptr) [[unlikely]] {
+                auto [ptr, bytes] = ptr_arena_->allocate(n * sizeof(value_type), alignof(value_type));
+                if (ptr == nullptr) [[unlikely]] {
                     throw std::bad_alloc{};
                 }
-                return static_cast<value_type*>(raw_bytes);
+                return {static_cast<value_type*>(ptr), bytes / sizeof(value_type)};
             }
+        }
+
+        [[nodiscard]] constexpr value_type* allocate(const size_type n) noexcept(UnsafeAllocInit) {
+            return this->allocate_at_least(n).ptr;
         }
 
         static constexpr void deallocate([[maybe_unused]] const value_type* p,
@@ -100,9 +103,9 @@ namespace urlicht {
         [[nodiscard]] constexpr void* allocate_bytes(const size_type nbytes,
                                                      const size_type align = alignof(std::max_align_t)) {
             if constexpr (UnsafeAllocInit) {
-                return ptr_arena_->allocate(nbytes, align);
+                return ptr_arena_->allocate(nbytes, align).ptr;
             } else {
-                auto* ptr = ptr_arena_->allocate(nbytes, align);
+                auto [ptr, _] = ptr_arena_->allocate(nbytes, align);
                 if (ptr == nullptr) [[unlikely]] {
                     throw std::bad_alloc{};
                 }
@@ -110,9 +113,11 @@ namespace urlicht {
             }
         }
 
-        static constexpr void deallocate_bytes([[maybe_unused]] const value_type* p,
-                                               [[maybe_unused]] const size_type n,
-                                               [[maybe_unused]] const size_type align) noexcept { }
+        static constexpr void deallocate_bytes(
+            [[maybe_unused]] const value_type* p,
+            [[maybe_unused]] const size_type n,
+            [[maybe_unused]] const size_type align = alignof(std::max_align_t)
+        ) noexcept { }
 
         /**
          * @brief Returns a non-const reference to the underlying arena for rebinding purpose.
@@ -127,7 +132,6 @@ namespace urlicht {
         }
     };
 }
-
 
 
 #endif //URLICHT_ARENA_VIEW_H
