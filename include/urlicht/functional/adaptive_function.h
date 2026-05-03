@@ -3,7 +3,9 @@
 
 #include <urlicht/internal/tag.h>
 #include <urlicht/config.h>
-#include <memory>
+#include <cstddef>    
+#include <utility>   
+#include <memory>    
 #include <type_traits>
 #include <functional>
 #include <urlicht/concepts_utility.h>
@@ -17,8 +19,12 @@ namespace urlicht {
      * @tparam T Function signature. Supports all valid combinations of noexcept, &/&&, and const.
      * @tparam OptimizeForSize SBO size. Defaults to 64.
      * @tparam OptimizeForAlign Alignment size. Defaults to {alignof(std::max_align_t)}.
+     * @tparam Copyable When true (default) the adaptive_function remains copyable, and requires callables
+     *                  to be copy-constructible. When false, the adaptive_function is move-only and may store
+     *                  move-only callables.
      */
-    template <typename T, size_t OptimizeForSize = 64u, size_t OptimizeForAlign = alignof(std::max_align_t)>
+    template <typename T, size_t OptimizeForSize = 64u,
+              size_t OptimizeForAlign = alignof(std::max_align_t), bool Copyable = true>
     class adaptive_function;
 
     namespace functional_detail {
@@ -26,16 +32,16 @@ namespace urlicht {
         template <typename>
         struct is_urlicht_adaptive_function : std::false_type {};
 
-        template <typename Sig, size_t S, size_t A>
-        struct is_urlicht_adaptive_function<adaptive_function<Sig, S, A>> : std::true_type {};
+        template <typename Sig, size_t S, size_t A, bool C>
+        struct is_urlicht_adaptive_function<adaptive_function<Sig, S, A, C>> : std::true_type {};
 
         template <typename T, size_t Size, size_t Align, bool IsConst,
-                  bool IsLvalue, bool IsRvalue, bool IsNoexcept>
+                  bool IsLvalue, bool IsRvalue, bool IsNoexcept, bool Copyable>
         class adaptive_function_base;
 
         template <typename R, size_t Size, size_t Align, bool IsConst,
-                  bool IsLvalue, bool IsRvalue, bool IsNoexcept, typename ...Args>
-        class adaptive_function_base<R(Args...), Size, Align, IsConst, IsLvalue, IsRvalue, IsNoexcept> {
+                  bool IsLvalue, bool IsRvalue, bool IsNoexcept, bool Copyable, typename ...Args>
+        class adaptive_function_base<R(Args...), Size, Align, IsConst, IsLvalue, IsRvalue, IsNoexcept, Copyable> {
         private:
             using self_type = adaptive_function_base;
 
@@ -105,11 +111,15 @@ namespace urlicht {
                     }
                 },
                 .clone = [](const storage_t& src, storage_t& dest) {
-                    if constexpr (InSBO) {
-                        const auto* obj = reinterpret_cast<const T*>(src.aligned_buffer);
-                        std::construct_at(reinterpret_cast<T*>(dest.aligned_buffer), *obj);
+                    if constexpr (Copyable) {
+                        if constexpr (InSBO) {
+                            const auto* obj = reinterpret_cast<const T*>(src.aligned_buffer);
+                            std::construct_at(reinterpret_cast<T*>(dest.aligned_buffer), *obj);
+                        } else {
+                            dest.heap_ptr = new T(*static_cast<T*>(src.heap_ptr));
+                        }
                     } else {
-                        dest.heap_ptr = new T(*static_cast<T*>(src.heap_ptr));
+                        UL_UNREACHABLE();
                     }
                 },
                 // Note: The adaptive_function being moved from is cleared subsequently for safety reasons.
@@ -161,7 +171,8 @@ namespace urlicht {
                 vtable_ = &vtable_for<U, use_sbo_v<U>>;
             }
 
-            void copy_from(const adaptive_function_base& other) {
+            void copy_from(const adaptive_function_base& other)
+            requires Copyable {
                 other.vtable_->clone(other.storage_, this->storage_);
                 this->vtable_ = other.vtable_;
             }
@@ -187,9 +198,9 @@ namespace urlicht {
             /**
              * @brief Constructs from the given callable object.
              * @param func The callable to store. Requirements:
-             *        1. It must be copy-constructible.
-             *        2. It must be compatible with the specifiers.
-             *        3. It must not be of the same specialization of adaptive_function.
+             *        1. It must be compatible with the specifiers.
+             *        2. It must not be of the same specialization of adaptive_function.
+             *        3. If RequireCopy == true then it must be copy-constructible (keeps legacy behavior).
              */
             template <typename F>
             requires is_callable_from_v<F> &&
@@ -197,7 +208,9 @@ namespace urlicht {
                      std::constructible_from<std::remove_cvref_t<F>, F&&>
             constexpr adaptive_function_base(F&& func)
             noexcept(std::is_nothrow_constructible_v<std::remove_cvref_t<F>, F&&>) {
-                static_assert(std::copy_constructible<std::remove_cvref_t<F>>, "F must be copyable");
+                if constexpr (Copyable) {
+                    static_assert(std::copy_constructible<std::remove_cvref_t<F>>, "F must be copyable");
+                }
                 if constexpr (requires() { func == nullptr; }) {
                     if (func == nullptr) [[unlikely]] {
                         return;
@@ -216,7 +229,9 @@ namespace urlicht {
             constexpr adaptive_function_base(detail::inplace_t<F>, _Args&&... args)
             noexcept(std::is_nothrow_constructible_v<F, _Args&&...>) {
                 static_assert(concepts::decayed<F>, "F must be a decayed type");
-                static_assert(std::copy_constructible<F>, "F must be copyable");
+                if constexpr (Copyable) {
+                    static_assert(std::copy_constructible<F>, "F must be copyable");
+                }
                 this->template construct_from<F>(std::forward<_Args>(args)...);
             }
 
@@ -231,7 +246,9 @@ namespace urlicht {
                 detail::inplace_t<F>, std::initializer_list<C> il, _Args&&... args)
             noexcept(std::is_nothrow_constructible_v<F, std::initializer_list<C>, _Args&&...>) {
                 static_assert(concepts::decayed<F>, "F must be a decayed type");
-                static_assert(std::copy_constructible<F>, "F must be copyable");
+                if constexpr (Copyable) {
+                    static_assert(std::copy_constructible<F>, "F must be copyable");
+                }
                 this->template construct_from<F>(il, std::forward<_Args>(args)...);
             }
 
@@ -245,19 +262,26 @@ namespace urlicht {
                 this->vtable_ = &vtable_for_nontype<f>;
             }
 
-            constexpr adaptive_function_base(const adaptive_function_base& other) {
+            constexpr adaptive_function_base(const adaptive_function_base& other)
+            requires (Copyable) {
                 if (other) [[likely]] {
                     this->copy_from(other);
                 }
             }
 
+            constexpr adaptive_function_base(const adaptive_function_base& other)
+            requires (!Copyable) = delete;
+
+            
             constexpr adaptive_function_base(adaptive_function_base&& other) noexcept {
                 if (other) [[likely]] {
                     this->move_from(std::move(other));
                 }
             }
 
-            constexpr adaptive_function_base& operator=(const adaptive_function_base& other) {
+            
+            constexpr adaptive_function_base& operator=(const adaptive_function_base& other)
+            requires (Copyable) {
                 if (this != &other) [[likely]] {
                     this->reset();
                     if (other) [[likely]] {
@@ -266,7 +290,7 @@ namespace urlicht {
                 }
                 return *this;
             }
-
+            
             constexpr adaptive_function_base& operator=(adaptive_function_base&& other) noexcept {
                 if (this != &other) [[likely]] {
                     this->reset();
@@ -288,7 +312,9 @@ namespace urlicht {
                      (!std::is_base_of_v<self_type, std::remove_cvref_t<F>>)
             constexpr adaptive_function_base& operator=(F&& func)
             noexcept(std::is_nothrow_constructible_v<std::remove_cvref_t<F>, F&&>) {
-                static_assert(std::copy_constructible<std::remove_cvref_t<F>>, "F must be copyable");
+                if constexpr (Copyable) {
+                    static_assert(std::copy_constructible<std::remove_cvref_t<F>>, "F must be copyable");
+                }
                 this->reset();
                 if constexpr (requires() { func == nullptr; }) {
                     if (func == nullptr) [[unlikely]] {
@@ -382,7 +408,9 @@ namespace urlicht {
             constexpr std::remove_cvref_t<F>& emplace(CArgs&& ...cargs)
             noexcept(std::is_nothrow_constructible_v<std::remove_cvref_t<F>, CArgs&&...>) {
                 using U = std::remove_cvref_t<F>;
-                static_assert(std::copy_constructible<U>, "F must be copyable");
+                if constexpr (Copyable) {
+                    static_assert(std::copy_constructible<U>, "F must be copyable");
+                }
 
                 this->reset();
                 this->template construct_from<U>(std::forward<CArgs>(cargs)...);
@@ -400,7 +428,9 @@ namespace urlicht {
             constexpr std::remove_cvref_t<F>& emplace(std::initializer_list<T> il, CArgs&& ...cargs)
             noexcept(std::is_nothrow_constructible_v<std::remove_cvref_t<F>, CArgs&&...>) {
                 using U = std::remove_cvref_t<F>;
-                static_assert(std::copy_constructible<U>, "F must be copyable");
+                if constexpr (Copyable) {
+                    static_assert(std::copy_constructible<U>, "F must be copyable");
+                }
 
                 this->reset();
                 this->template construct_from<U>(il, std::forward<CArgs>(cargs)...);
@@ -482,12 +512,14 @@ namespace urlicht {
     inline constexpr bool is_urlicht_adaptive_function_v = functional_detail::is_urlicht_adaptive_function<T>::value;
 
 #define ADAPTIVE_FUNCTION_SPEC(QUALIFIERS, IS_CONST, IS_LVALUE, IS_RVALUE, IS_NOEXCEPT) \
-    template <typename Ret, size_t OptimizeForSize, size_t OptimizeForAlign, typename ...Args> \
-    class adaptive_function<Ret(Args...) QUALIFIERS, OptimizeForSize, OptimizeForAlign> \
+    template <typename Ret, size_t OptimizeForSize, size_t OptimizeForAlign, bool Copyable, typename ...Args> \
+    class adaptive_function<Ret(Args...) QUALIFIERS, OptimizeForSize, OptimizeForAlign, Copyable> \
         : public functional_detail::adaptive_function_base< \
-            Ret(Args...), OptimizeForSize, OptimizeForAlign, IS_CONST, IS_LVALUE, IS_RVALUE, IS_NOEXCEPT> { \
+            Ret(Args...), OptimizeForSize, OptimizeForAlign, IS_CONST, IS_LVALUE, \
+            IS_RVALUE, IS_NOEXCEPT, Copyable> { \
         using Base = functional_detail::adaptive_function_base< \
-            Ret(Args...), OptimizeForSize, OptimizeForAlign, IS_CONST, IS_LVALUE, IS_RVALUE, IS_NOEXCEPT>; \
+            Ret(Args...), OptimizeForSize, OptimizeForAlign, IS_CONST, IS_LVALUE, \
+            IS_RVALUE, IS_NOEXCEPT, Copyable>; \
     public: \
         using Base::Base; \
         using Base::operator=; \
@@ -508,6 +540,9 @@ namespace urlicht {
     ADAPTIVE_FUNCTION_SPEC(const && noexcept, true, false, true, true)
 
 #undef ADAPTIVE_FUNCTION_SPEC
+
+    template <typename F, size_t OptimizeForSize, size_t OptimizeForAlign>
+    using adaptive_move_only_function = adaptive_function<F, OptimizeForSize, OptimizeForAlign, false>;
 }
 
 #endif //URLICHT_ADAPTIVE_FUNCTION_H
