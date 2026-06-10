@@ -37,7 +37,7 @@ namespace urlicht {
      *          release()/destructor, and it is the user's responsibility to manage it.
      */
     template <bool UseUpstream, /* = true */
-              ArenaGrowthPolicy GrowthPolicy /* = {} */,
+              arena_growth_policy GrowthPolicy /* = {} */,
               concepts::allocator UpstreamAlloc /* = std::allocator<std::byte> */>
     class arena {
         static_assert(std::same_as<typename UpstreamAlloc::value_type, std::byte>,
@@ -100,7 +100,7 @@ namespace urlicht {
         /**
          * @brief Returns the growth policy of the heap chunks.
          */
-        static consteval ArenaGrowthPolicy growth_policy() noexcept requires (UseUpstream) {
+        static consteval arena_growth_policy growth_policy() noexcept requires (UseUpstream) {
             return GrowthPolicy;
         }
 
@@ -145,17 +145,12 @@ namespace urlicht {
 
         /**
          * @brief Construct with either an external or internal initial buffer and an upstream allocator.
-         *
-         * If buffer is nullptr and buffer_size > 0, the constructor allocates the initial buffer of the given
-         * size from the provided upstream allocator. If buffer is non-null, the arena wraps the external buffer
-         * and will not free it on release()/destructor.
-         *
          * @param buffer pointer to external buffer or nullptr to allocate one.
          * @param buffer_size number of bytes of the initial buffer.
          * @param upstream Provided allocator instance for subsequent internal allocations.
          */
         constexpr arena(void* buffer, const size_t buffer_size, upstream_allocator upstream)
-            : upstream_(std::move(upstream)) {
+        : upstream_{std::move(upstream)} {
             if (buffer == nullptr) {
                 if (buffer_size != 0U) [[likely]] {
                     initial_buffer_.start = upstream_traits::allocate(upstream_, buffer_size);
@@ -207,6 +202,7 @@ namespace urlicht {
         constexpr arena& operator=(arena&& other)
         noexcept(std::is_nothrow_move_assignable_v<upstream_allocator>) {
             if (this != &other) [[likely]] {
+                this->release();
                 initial_buffer_ = other.initial_buffer_;
                 chunk_footer_ = other.chunk_footer_;
                 upstream_ = std::move(other.upstream_);
@@ -289,7 +285,7 @@ namespace urlicht {
          *
          * @param bytes number of bytes to allocate.
          * @param align alignment requirement for the allocation, defaults to alignof(max_align_t).
-         * @return std::allocation_result struct (or equivalent)
+         * @return void pointer to the allocated memory.
          *
          * @note UB if initial_buffer_.start == nullptr or the buffer is undersized.
          */
@@ -310,7 +306,7 @@ namespace urlicht {
          *
          * @param bytes Number of bytes requested.
          * @param align Alignment requirement. Defaults to alignof(std::max_align_t).
-         * @return std::allocation_result struct (or equivalent)
+         * @return void pointer to the allocated memory on success, nullptr on failure.
          */
         [[nodiscard]] constexpr allocation_result allocate(size_t bytes, const size_t align = default_align)
         noexcept(!UseUpstream) {
@@ -379,7 +375,6 @@ namespace urlicht {
         friend constexpr bool operator==(const arena& lhs, const arena& rhs) noexcept {
             return std::addressof(lhs) == std::addressof(rhs);
         }
-
     };
 
 }
