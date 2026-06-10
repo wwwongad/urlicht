@@ -19,7 +19,7 @@ file(GLOB_RECURSE URLICHT_BENCHMARK_SOURCES
         "${CMAKE_CURRENT_SOURCE_DIR}/container/bm_*.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/functional/bm_*.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/memory/bm_*.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/procedural/bm_*.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/algorithm/bm_*.cpp"
 )
 
 add_executable(urlicht_benchmark
