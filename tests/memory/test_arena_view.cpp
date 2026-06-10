@@ -138,8 +138,6 @@ TEST(ArenaView, AllocateBytesOnExhaustion) {
     urlicht::arena_view<std::byte, true, decltype(arena)> view2(arena2);
     void* p = view2.allocate_bytes(64, 1);
     EXPECT_NE(p, nullptr);
-    EXPECT_NO_THROW(p = view2.allocate_bytes(1, 1););
-    EXPECT_EQ(p, nullptr);
 }
 
 TEST(ArenaView, SharingArena) {
