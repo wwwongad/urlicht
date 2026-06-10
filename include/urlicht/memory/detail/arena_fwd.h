@@ -50,7 +50,7 @@ namespace urlicht {
     }
 #endif
 
-    struct ArenaGrowthPolicy {
+    struct arena_growth_policy {
         size_t initial_size = 1024;
         double growth_rate = 1.2;
     };
@@ -58,7 +58,7 @@ namespace urlicht {
     /************************ URLICHT ARENA **************************/
 
     template <bool UseUpstream = true,
-              ArenaGrowthPolicy GrowthPolicy = ArenaGrowthPolicy{},
+              arena_growth_policy GrowthPolicy = arena_growth_policy{},
               concepts::allocator UpstreamAlloc = std::allocator<std::byte>>
     class arena;
 
@@ -66,7 +66,7 @@ namespace urlicht {
         template <typename T>
         struct is_arena : std::false_type {};
 
-        template <bool U, ArenaGrowthPolicy P, typename A>
+        template <bool U, arena_growth_policy P, typename A>
         struct is_arena<arena<U, P, A>> : std::true_type {};
     }
 
@@ -76,7 +76,7 @@ namespace urlicht {
     /************************ URLICHT CONCURRENT ARENA **************************/
 
     template <bool UseUpstream = true,
-              ArenaGrowthPolicy GrowthPolicy = ArenaGrowthPolicy{},
+              arena_growth_policy GrowthPolicy = arena_growth_policy{},
               concepts::allocator UpstreamAlloc = std::allocator<std::byte>>
     class concurrent_arena;
 
@@ -84,7 +84,7 @@ namespace urlicht {
         template <typename T>
         struct is_concurrent_arena : std::false_type {};
 
-        template <bool U, ArenaGrowthPolicy P, concepts::allocator A>
+        template <bool U, arena_growth_policy P, concepts::allocator A>
         struct is_concurrent_arena<concurrent_arena<U, P, A>> : std::true_type {};
     }
 
@@ -110,12 +110,12 @@ namespace urlicht {
         template <typename T>
         struct no_upstream_arena_impl {};
 
-        template <bool U, ArenaGrowthPolicy P, typename A>
+        template <bool U, arena_growth_policy P, typename A>
         struct no_upstream_arena_impl<arena<U, P, A>> {
             using type = arena<false, P, A>;
         };
 
-        template <bool U, ArenaGrowthPolicy P, typename A>
+        template <bool U, arena_growth_policy P, typename A>
         struct no_upstream_arena_impl<concurrent_arena<U, P, A>> {
             using type = concurrent_arena<false, P, A>;
         };
