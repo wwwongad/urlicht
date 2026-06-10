@@ -1,12 +1,8 @@
 #include <gtest/gtest.h>
 #include <urlicht/memory/arena.h>
-#include <urlicht/memory/arena_view.h>
 #include <algorithm>
-#include <deque>
 #include <limits>
-#include <list>
 #include <cmath>
-#include <scoped_allocator>
 #include <memory_resource>
 #include <cstdint>
 #include <vector>
