@@ -1,5 +1,4 @@
 #include <urlicht/container/inplace_vector.h>
-#include <urlicht/compare.h>
 #include <iostream>
 #include <list>
 #include <gtest/gtest.h>
