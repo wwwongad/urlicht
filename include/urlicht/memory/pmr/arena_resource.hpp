@@ -13,34 +13,30 @@ namespace urlicht::pmr {
 
     template <typename Arena, bool UnsafeAllocInit>
     class arena_resource final : public std::pmr::memory_resource,
-                                 private memory_detail::zero_overhead_arena<Arena, UnsafeAllocInit>
-    {
+                                 private memory_detail::zero_overhead_arena<Arena, UnsafeAllocInit> {
         static_assert(is_urlicht_arena_view_compatible_v<Arena>,
             "Arena should be an instantiation of urlicht::arena or urlicht::concurrent_arena");
         using base_arena = memory_detail::zero_overhead_arena<Arena, UnsafeAllocInit>;
     public:
-        /**
-         * @brief Perfect forwarding constructor delegating to the constructor of Arena. See
-         *        arena.h for more details.
-         */
-        template <typename ...Args>
-        requires std::constructible_from<base_arena, Args&&...> &&
-                 (!is_urlicht_pmr_arena_resource_v<std::remove_cvref_t<Args>> && ...)
-        constexpr arena_resource(Args&&... args)
-        noexcept(std::is_nothrow_constructible_v<base_arena, Args&&...>)
-        : base_arena(std::forward<Args>(args)...) {}
+        using base_arena::base_arena;
 
-        constexpr arena_resource(const arena_resource&) = delete;
+        arena_resource(const arena_resource&) = delete;
+        arena_resource& operator=(const arena_resource&) = delete;
 
-        constexpr arena_resource(arena_resource&&)
-        noexcept(std::is_nothrow_move_constructible_v<base_arena>) = default;
+        constexpr arena_resource(arena_resource&& other)
+        noexcept(std::is_nothrow_move_constructible_v<base_arena>)
+        : std::pmr::memory_resource{}, base_arena{std::move(static_cast<base_arena&>(other))}
+        { }
 
-        constexpr arena_resource& operator=(const arena_resource&) = delete;
+        constexpr arena_resource& operator=(arena_resource&& other)
+        noexcept(std::is_nothrow_move_assignable_v<base_arena>) {
+            if (this != &other) [[likely]] {
+                static_cast<base_arena&>(*this) = std::move(static_cast<base_arena&>(other));
+            }
+            return *this;
+        }
 
-        constexpr arena_resource& operator=(arena_resource&&)
-        noexcept(std::is_nothrow_move_assignable_v<base_arena>) = default;
-
-        ~arena_resource() override { }
+        constexpr ~arena_resource() override = default;
 
         constexpr const base_arena& arena() const noexcept {
             return static_cast<const base_arena&>(*this);
@@ -58,9 +54,9 @@ namespace urlicht::pmr {
         void* do_allocate(size_t bytes, size_t alignment)
         noexcept(UnsafeAllocInit) override {
             if constexpr (UnsafeAllocInit) {
-                return base_arena::unchecked_allocate_initial(bytes, alignment);
+                return base_arena::unchecked_allocate_initial(bytes, alignment).ptr;
             } else {
-                auto* ptr = base_arena::allocate(bytes, alignment);
+                auto [ptr, cnt] = base_arena::allocate(bytes, alignment);
                 if (ptr == nullptr) [[unlikely]] {
                     throw std::bad_alloc{};
                 }
