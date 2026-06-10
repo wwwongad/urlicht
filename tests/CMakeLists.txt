@@ -13,10 +13,13 @@ endif()
 
 file(GLOB_RECURSE URLICHT_TEST_SOURCES
         CONFIGURE_DEPENDS
+        "${CMAKE_CURRENT_SOURCE_DIR}/adaptor/test_*.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/algorithm/test_*.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/any/test_*.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/concurrency/test_*.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/container/test_*.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/functional/test_*.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/memory/test_*.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/procedural/test_*.cpp"
 )
 
 if(URLICHT_TEST_SOURCES STREQUAL "")
