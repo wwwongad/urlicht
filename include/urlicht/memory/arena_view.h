@@ -73,6 +73,7 @@ namespace urlicht {
 
         [[nodiscard]] constexpr allocation_result allocate_at_least(const size_type n)
         noexcept(UnsafeAllocInit) {
+            static_assert(sizeof(value_type) > 0, "Cannot allocate for incomplete types.");
             if constexpr (UnsafeAllocInit) {
                 auto [ptr, bytes] = ptr_arena_->unchecked_allocate_initial(
                     n * sizeof(value_type), alignof(value_type)
@@ -103,7 +104,7 @@ namespace urlicht {
         [[nodiscard]] constexpr void* allocate_bytes(const size_type nbytes,
                                                      const size_type align = alignof(std::max_align_t)) {
             if constexpr (UnsafeAllocInit) {
-                return ptr_arena_->allocate(nbytes, align).ptr;
+                return ptr_arena_->unchecked_allocate_initial(nbytes, align).ptr;
             } else {
                 auto [ptr, _] = ptr_arena_->allocate(nbytes, align);
                 if (ptr == nullptr) [[unlikely]] {
@@ -132,6 +133,5 @@ namespace urlicht {
         }
     };
 }
-
 
 #endif //URLICHT_ARENA_VIEW_H
