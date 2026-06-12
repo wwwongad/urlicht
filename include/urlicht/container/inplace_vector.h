@@ -13,6 +13,7 @@
 #include <limits>
 #include <concepts>
 #include <type_traits>
+#include <urlicht/config.h>
 #include <urlicht/concepts_utility.h>
 #include <urlicht/internal/scope_guard.h>
 
@@ -87,7 +88,11 @@ namespace urlicht {
         using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
     private:
-        alignas(alignof(T)) std::byte storage_[N * sizeof(T)]; // Deliberately not initialized
+        alignas(alignof(T)) std::byte storage_[N * sizeof(T)]
+#if UL_HAS_CPP26
+    [[indeterminate]]
+#endif
+        ; 
         size_type size_{0U};
 
         template <concepts::compatible_iterator<T> Iter>
@@ -653,21 +658,19 @@ namespace urlicht {
          * @note: UB if the vector is empty.
          */
         constexpr void unchecked_pop_back() noexcept {
-            auto* end_ptr = this->end() - 1;
-            --this->size_;
             if constexpr (!std::is_trivially_destructible_v<value_type>) {
-                std::destroy_at(end_ptr);
+                std::destroy_at(this->end() - 1);
             }
+            --this->size_;
         }
 
         /**
-         * @brief: Removes the last element of the vector with empty check.
-         * @note: No-operation for an empty vector.
+         * @brief: Removes the last element of the vector with non-empty assertion.
+         * @pre: The vector is non-empty.
          */
         constexpr void pop_back() noexcept {
-            if (!this->empty()) [[likely]] {
-                this->unchecked_pop_back();
-            }
+            UL_ASSERT(this->size() > 0, "The vector is empty");
+            this->unchecked_pop_back();
         }
 
         //////////////////////////////////////////////
