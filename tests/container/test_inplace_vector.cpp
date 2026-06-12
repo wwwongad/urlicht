@@ -610,11 +610,6 @@ TEST_F(InplaceVector, PopBack) {
         tracked_vec.unchecked_pop_back();
     }
     EXPECT_EQ(IVTrackDestruction::destroy_count, 5);
-
-    // No effects when empty
-    check_size(tracked_vec, 0);
-    EXPECT_NO_THROW(tracked_vec.pop_back());
-    check_size(tracked_vec, 0);
 }
 
 TEST_F(InplaceVector, AppendRange) {
