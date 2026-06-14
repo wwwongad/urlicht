@@ -46,23 +46,23 @@ namespace urlicht {
         //************************* CORE METHODS ****************************//
 
         UL_CONSTEXPR23 void release() noexcept {
-            std::unique_lock lock(mutex_);
+            std::scoped_lock lock(mutex_);
             get_arena_mut_().release();
         }
 
         UL_CONSTEXPR23 void reset() noexcept {
-            std::unique_lock lock(mutex_);
+            std::scoped_lock lock(mutex_);
             get_arena_mut_().reset();
         }
 
         [[nodiscard]] UL_CONSTEXPR23 void* unchecked_allocate_initial(const size_t bytes,
                                                                       const size_t align = default_align) noexcept {
-            std::unique_lock lock(mutex_);
-            return get_arena_mut_().unchecked_allocate_initial(bytes, align).ptr;
+            std::scoped_lock lock(mutex_);
+            return get_arena_mut_().unchecked_allocate_initial(bytes, align);
         }
 
         [[nodiscard]] UL_CONSTEXPR23 auto allocate(const size_t bytes, const size_t align = default_align) {
-            std::unique_lock lock(mutex_);
+            std::scoped_lock lock(mutex_);
             return get_arena_mut_().allocate(bytes, align);
         }
 
