@@ -112,12 +112,12 @@ static void BM_traversal(benchmark::State& state) {
 
     for (auto _ : state) {
         for (auto it = m.begin(); it != m.end(); ++it) {
-            benchmark::DoNotOptimize(it);
+            benchmark::DoNotOptimize(it->second);
         }
         benchmark::ClobberMemory();
 
         for (auto it = m.rbegin(); it != m.rend(); ++it) {
-            benchmark::DoNotOptimize(it);
+            benchmark::DoNotOptimize(it->second);
         }
         benchmark::ClobberMemory();
     }
