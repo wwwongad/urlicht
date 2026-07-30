@@ -237,7 +237,6 @@ public:
   /// reader waiting. Since this is a concurrent queue the size is only a best
   /// effort guess until all reader and writer threads have been joined.
   ptrdiff_t size() const noexcept {
-    // TODO: How can we deal with wrapped queue on 32bit?
     return static_cast<ptrdiff_t>(head_.load(std::memory_order_relaxed) -
                                   tail_.load(std::memory_order_relaxed));
   }
