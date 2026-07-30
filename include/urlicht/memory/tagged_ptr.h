@@ -529,7 +529,7 @@ namespace std {
     // std::hash
     template<typename T, bool IS_OWNING, typename Deleter>
     struct hash<urlicht::memory::tagged_ptr<T, IS_OWNING, Deleter>> {
-        std::size_t operator()(const urlicht::memory::tagged_ptr<T, IS_OWNING, Deleter>& p) noexcept {
+        std::size_t operator()(const urlicht::memory::tagged_ptr<T, IS_OWNING, Deleter>& p) const noexcept {
             return std::hash<uintptr_t>{}(p.raw()); // both pointer and tag
         }
     };

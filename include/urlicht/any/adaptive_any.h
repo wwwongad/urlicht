@@ -3,6 +3,7 @@
 
 #include <urlicht/internal/tag.h>
 #include <urlicht/concepts/concepts.h>
+#include <any>
 #include <memory>
 #include <type_traits>
 
