@@ -1,0 +1,377 @@
+#ifndef URLICHT_ADAPTIVE_ANY
+#define URLICHT_ADAPTIVE_ANY
+
+#include <urlicht/internal/tag.h>
+#include <urlicht/concepts/concepts.h>
+#include <memory>
+#include <type_traits>
+
+namespace urlicht::any {
+
+    /**
+    * @class adaptive_any
+    * @brief A type-safe container for single values of any type, with customizable
+    *        small buffer optimization.
+    *
+    * @tparam OptimizeForSize The size of the internal buffer for SBO. Objects smaller
+    *         than or equal to this size will be stored internally.
+    * @tparam OptimizeForAlign The alignment requirement for the internal buffer.
+    */
+    template <std::size_t OptimizeForSize, std::size_t OptimizeForAlign = alignof(std::max_align_t)>
+    class adaptive_any;
+
+    namespace detail {
+        template <typename Other>
+        struct is_adaptive_any {
+            constexpr static bool value = false;
+        };
+
+        template <std::size_t OptimizeForSize, std::size_t OptimizeForAlign>
+        struct is_adaptive_any<adaptive_any<OptimizeForSize, OptimizeForAlign>> {
+            constexpr static bool value = true;
+        };
+    }
+
+}
+
+namespace urlicht {
+    template <typename T>
+    inline constexpr bool is_urlicht_adaptive_any_v = any::detail::is_adaptive_any<T>::value;
+}
+
+namespace urlicht::any {
+    
+    template <std::size_t OptimizeForSize, std::size_t OptimizeForAlign>
+    class adaptive_any {
+    private:
+        union storage_type {
+            alignas(OptimizeForAlign) std::byte aligned_buffer [OptimizeForSize];
+            void* heap_ptr;
+        };
+
+        template <typename T>
+        static constexpr bool use_sbo_v =
+            sizeof(T) <= OptimizeForSize && alignof(T) <= OptimizeForAlign && std::is_nothrow_move_constructible_v<T>;
+
+        struct vtable_t {
+            void (*destroy) (storage_type&) noexcept = nullptr;
+            void (*move) (storage_type&, storage_type&) noexcept = nullptr;
+            void (*clone) (const storage_type&, storage_type&) = nullptr;
+            const std::type_info* (*type_info) () noexcept = nullptr;
+            bool (*in_sbo) () noexcept = nullptr;
+        };
+
+        template <typename T, bool InSBO>
+        static constexpr vtable_t vtable_for = {
+            .destroy = [](storage_type& src) noexcept {
+                if constexpr (InSBO) {
+                    std::destroy_at(reinterpret_cast<T*>(src.aligned_buffer));
+                } else {
+                    delete static_cast<T*>(src.heap_ptr);
+                }
+            },
+            // If the object may throw in move construction, it is placed on the heap to
+            // ensure nothrow move operation of adaptive_any
+            .move = [](storage_type& src, storage_type& dest) noexcept {
+                if constexpr (InSBO) {
+                    auto* src_value = reinterpret_cast<T*>(src.aligned_buffer);
+                    std::construct_at(reinterpret_cast<T*>(dest.aligned_buffer), std::move(*src_value));
+                    std::destroy_at(src_value);
+                } else {
+                    dest.heap_ptr = src.heap_ptr;
+                    src.heap_ptr = nullptr;
+                }
+            },
+            .clone = [](const storage_type& src, storage_type& dest) {
+                if constexpr (InSBO) {
+                    const auto* src_value = reinterpret_cast<const T*>(src.aligned_buffer);
+                    std::construct_at(reinterpret_cast<T*>(dest.aligned_buffer), *src_value);
+                } else {
+                    const auto* src_value = reinterpret_cast<const T*>(src.heap_ptr);
+                    dest.heap_ptr = new T(*src_value);
+                }
+            },
+            .type_info = []() noexcept { return &typeid(T); },
+            .in_sbo = []() noexcept { return InSBO; }
+        };
+
+        template <typename T, typename... Args>
+        constexpr void construct(const bool cond, Args&&... args)
+        noexcept(std::is_nothrow_constructible_v<std::remove_cvref_t<T>, Args&&...>) {
+            using U = std::remove_cvref_t<T>;
+            static_assert(std::copy_constructible<U>, "The provided type must be copy constructible");
+            if (cond) {
+                if constexpr (use_sbo_v<U>) {
+                    std::construct_at(
+                        reinterpret_cast<U*>(content_.aligned_buffer),
+                        std::forward<Args>(args)...);
+                } else {
+                    content_.heap_ptr = new U(std::forward<Args>(args)...);
+                }
+                vtable_ = &vtable_for<U, use_sbo_v<U>>;
+            }
+        }
+
+        constexpr void copy_from(const adaptive_any& other) {
+            other.vtable_->clone(other.content_, content_);
+            vtable_ = other.vtable_;
+        }
+
+        constexpr void move_from(adaptive_any&& other) noexcept {
+            other.vtable_->move(other.content_, content_);
+            vtable_ = other.vtable_;
+            other.vtable_ = nullptr;
+        }
+
+    public:
+        static consteval std::size_t buffer_size() noexcept { return OptimizeForSize; }
+        static consteval std::size_t buffer_align() noexcept { return OptimizeForAlign; }
+
+        /************************* CONSTRUCTORS **************************/
+
+        constexpr adaptive_any() noexcept = default;
+
+        template <typename T>
+        requires (!urlicht::is_urlicht_adaptive_any_v<std::remove_cvref_t<T>>) &&
+                  std::constructible_from<T, T&&>
+        constexpr adaptive_any(T&& val)
+        noexcept(std::is_nothrow_constructible_v<T, T&&>) {
+            this->template construct<T>(true, std::forward<T>(val));
+        }
+
+        template <typename T>
+        requires (!urlicht::is_urlicht_adaptive_any_v<std::remove_cvref_t<T>>) &&
+                  std::constructible_from<T, T&&>
+        constexpr adaptive_any(const bool cond, T&& val)
+        noexcept(std::is_nothrow_constructible_v<T, T&&>) {
+            this->template construct<T>(cond, std::forward<T>(val));
+        }
+
+        template <typename T, typename... Args>
+        requires (!urlicht::is_urlicht_adaptive_any_v<std::remove_cvref_t<T>>) &&
+                  std::constructible_from<std::remove_cvref_t<T>, Args&&...>
+        constexpr adaptive_any(urlicht::internal::inplace_t<T>, Args&&... args)
+        noexcept(std::is_nothrow_constructible_v<T, Args&&...>) {
+            this->template construct<T>(true, std::forward<Args>(args)...);
+        }
+
+        template <typename T, typename... Args>
+        requires (!urlicht::is_urlicht_adaptive_any_v<std::remove_cvref_t<T>>) &&
+                  std::constructible_from<std::remove_cvref_t<T>, Args&&...>
+        explicit constexpr adaptive_any(urlicht::internal::inplace_cond_t<T>, const bool cond, Args&&... args)
+        noexcept(std::is_nothrow_constructible_v<T, Args&&...>) {
+            this->template construct<T>(cond, std::forward<Args>(args)...);
+        }
+
+        constexpr adaptive_any(const adaptive_any& other) {
+            if (other.has_value()) [[likely]] {
+                this->copy_from(other);
+            }
+        }
+
+        constexpr adaptive_any(adaptive_any&& other) noexcept {
+            if (other.has_value()) [[likely]] {
+                this->move_from(std::move(other));
+            }
+        }
+
+        constexpr adaptive_any& operator=(const adaptive_any& other) {
+            if (this != &other) [[likely]] {
+                this->reset();
+                if (other.has_value()) [[likely]] {
+                    this->copy_from(other);
+                }
+            }
+            return *this;
+        }
+
+        constexpr adaptive_any& operator=(adaptive_any&& other) noexcept {
+            if (this != &other) [[likely]]{
+                this->reset();
+                if (other.has_value()) [[likely]] {
+                    this->move_from(std::move(other));
+                }
+            }
+            return *this;
+        }
+
+        constexpr ~adaptive_any() noexcept {
+            this->reset();
+        }
+
+        /************************* MODIFIERS **************************/
+
+        constexpr void reset() noexcept {
+            if (this->has_value()) [[likely]] {
+                vtable_->destroy(content_);
+                vtable_ = nullptr;
+            }
+        }
+
+        template <typename T, typename... Args>
+        requires std::constructible_from<T, Args&&...>
+        constexpr std::remove_cvref_t<T>& emplace(Args&&... args) {
+            using U = std::remove_cvref_t<T>;
+            static_assert(std::copy_constructible<U>, "The provided type must be copy constructible");
+            this->reset();
+            this->template construct<U>(true, std::forward<Args>(args)...);
+            if constexpr (use_sbo_v<U>) {
+                return *reinterpret_cast<U*>(content_.aligned_buffer);
+            } else {
+                return *reinterpret_cast<U*>(content_.heap_ptr);
+            }
+        }
+
+        constexpr void swap(adaptive_any& other) noexcept {
+            if (this == &other) [[unlikely]] {
+                return;
+            }
+            if (!this->has_value() && !other.has_value()) [[unlikely]] { // Both empty
+                return;
+            }
+            if (!other.has_value()) {
+                other.move_from(std::move(*this));
+            } else if (!this->has_value()) {
+                this->move_from(std::move(other));
+            } else {
+                adaptive_any tmp{std::move(other)};
+                other.move_from(std::move(*this));
+                this->move_from(std::move(tmp));
+            }
+        }
+
+        /************************* OBSERVERS **************************/
+
+        [[nodiscard]] constexpr bool has_value() const noexcept {
+            return vtable_ != nullptr;
+        }
+
+        [[nodiscard]] constexpr operator bool() const noexcept {
+            return has_value();
+        }
+
+        [[nodiscard]] const std::type_info& type_info() const noexcept {
+            if (this->has_value()) {
+                return *vtable_->type_info();
+            }
+            return typeid(void);
+        }
+
+        template <typename T>
+        [[nodiscard]] constexpr bool is() const noexcept {
+            return vtable_ == &vtable_for<T, use_sbo_v<T>>;
+        }
+
+        [[nodiscard]] constexpr bool in_sbo() const noexcept {
+            if (this->has_value()) {
+                return vtable_->in_sbo();
+            }
+            return false;
+        }
+
+        // any_casts
+        template <typename T, std::size_t S, std::size_t A>
+        friend const std::remove_cvref_t<T>* any_cast(const adaptive_any<S, A>* operand) noexcept;
+
+        template <typename T, std::size_t S, std::size_t A>
+        friend std::remove_cvref_t<T>* any_cast(adaptive_any<S, A>* operand) noexcept;
+
+        template <typename T, std::size_t S, std::size_t A>
+        friend std::remove_cvref_t<T>* unchecked_any_cast(adaptive_any<S, A>* operand) noexcept;
+
+    private:
+        // Data member
+        storage_type content_;
+        const vtable_t* vtable_{};
+    };
+
+
+    // Non-member swap
+    template <std::size_t S, std::size_t A>
+    constexpr void swap(adaptive_any<S, A>& lhs, adaptive_any<S, A>& rhs) noexcept {
+        lhs.swap(rhs);
+    }
+
+    /************************** ANY_CAST OVERLOADS ***************************/
+
+    /**
+     *@note: This ignores all cvref qualifiers of T
+     */
+    template <typename T, std::size_t S, std::size_t A>
+    std::remove_cvref_t<T>* any_cast(adaptive_any<S, A>* operand) noexcept {
+        using U = std::remove_cvref_t<T>;
+        if (operand && operand->template is<U>()) {
+            if constexpr (adaptive_any<S, A>::template use_sbo_v<U>) {
+                return reinterpret_cast<U*>(operand->content_.aligned_buffer);
+            } else {
+                return reinterpret_cast<U*>(operand->content_.heap_ptr);
+            }
+        }
+        return nullptr;
+    }
+
+
+    template <typename T, std::size_t S, std::size_t A>
+    const std::remove_cvref_t<T>* any_cast(const adaptive_any<S, A>* operand) noexcept {
+        return any_cast<T>(const_cast<adaptive_any<S, A>*>(operand));
+    }
+
+    template <typename T, std::size_t S, std::size_t A>
+    std::remove_cvref_t<T>& any_cast(adaptive_any<S, A>& operand) {
+        auto* ptr = any_cast<T>(&operand);
+        if (!ptr) {
+            throw std::bad_any_cast();
+        }
+        return *ptr;
+    }
+
+    template <typename T, std::size_t S, std::size_t A>
+    const std::remove_cvref_t<T>& any_cast(const adaptive_any<S, A>& operand) {
+        return any_cast<T>(const_cast<adaptive_any<S, A>&>(operand));
+    }
+
+    template <typename T, std::size_t S, std::size_t A>
+    std::remove_cvref_t<T>&& any_cast(adaptive_any<S, A>&& operand) {
+        return std::move(any_cast<T>(operand));
+    }
+
+    /******************** UNCHECKED_ANY_CAST OVERLOADS **********************/
+
+    template <typename T, std::size_t S, std::size_t A>
+    std::remove_cvref_t<T>* unchecked_any_cast(adaptive_any<S, A>* operand) noexcept {
+        using U = std::remove_cvref_t<T>;
+        if constexpr (adaptive_any<S, A>::template use_sbo_v<U>) {
+            return reinterpret_cast<U*>(operand->content_.aligned_buffer);
+        } else {
+            return reinterpret_cast<U*>(operand->content_.heap_ptr);
+        }
+    }
+
+    template <typename T, std::size_t S, std::size_t A>
+    std::remove_cvref_t<T>& unchecked_any_cast(adaptive_any<S, A>& operand) noexcept {
+        return *unchecked_any_cast<T>(&operand);
+    }
+
+    template <typename T, std::size_t S, std::size_t A>
+    const std::remove_cvref_t<T>& unchecked_any_cast(const adaptive_any<S, A>& operand) noexcept {
+        return *unchecked_any_cast<T>(&const_cast<adaptive_any<S, A>&>(operand));
+    }
+
+    template <typename T, std::size_t S, std::size_t A>
+    std::remove_cvref_t<T>&& unchecked_any_cast(adaptive_any<S, A>&& operand) noexcept {
+        return std::move(*unchecked_any_cast<T>(&operand));
+    }
+
+    // make_adaptive_any
+    template <typename T,
+              typename... Args,
+              std::size_t S = std::max(sizeof(T) * 2, 16ul),
+              std::size_t A = alignof(T)>
+    [[nodiscard]] constexpr auto make_adaptive_any(Args&&... args) {
+        adaptive_any<S, A> any(urlicht::inplace<T>, std::forward<Args>(args)...);
+        return any;
+    }
+
+}
+
+#endif //URLICHT_ADAPTIVE_ANY

@@ -1,0 +1,17 @@
+# Normalize text files and retain LF line endings across platforms.
+* text=auto eol=lf
+
+# Source and build metadata
+*.h text
+*.hpp text
+*.cpp text
+*.cmake text
+CMakeLists.txt text
+
+# Binary assets
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
