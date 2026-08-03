@@ -609,7 +609,7 @@ namespace urlicht::container {
             if constexpr (unite_by_size()) {
                 if (metrics_[x] < metrics_[y]) {
                     parents_[x] = y;
-                    metrics_[y] = metrics_[x];
+                    metrics_[y] += metrics_[x];
                 } else {
                     parents_[y] = x;
                     metrics_[x] += metrics_[y];
@@ -664,16 +664,18 @@ template <std::unsigned_integral Id,
 struct std::uses_allocator<urlicht::container::dense_disjoint_sets<Id, P, PC, MC>, Alloc>
     : bool_constant<
         std::uses_allocator_v<PC<Id>, Alloc> &&
-        (!urlicht::container::dense_disjoint_sets<Id, P, PC, MC>::uses_union_heuristic() ||
+        (
+            !urlicht::container::dense_disjoint_sets<Id, P, PC, MC>::uses_union_heuristic() ||
             std::uses_allocator_v<
-                typename urlicht::container::dense_disjoint_sets<Id, P, PC, MC>::metric_container_type, Alloc>)
+                typename urlicht::container::dense_disjoint_sets<Id, P, PC, MC>::metric_container_type, Alloc
+            >
+        )
     >
 {   };
 
 namespace urlicht {
     template <typename T>
-    inline constexpr bool is_urlicht_dense_disjoint_sets_v =
-        container::detail::is_dense_disjoint_sets<T>::value;
+    inline constexpr bool is_urlicht_dense_disjoint_sets_v = container::detail::is_dense_disjoint_sets<T>::value;
 }
 
 #endif // URLICHT_DENSE_DISJOINT_SETS_H
