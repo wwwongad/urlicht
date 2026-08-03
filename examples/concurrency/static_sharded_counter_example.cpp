@@ -6,7 +6,7 @@
 
 int main() {
     urlicht::concurrency::static_sharded_counter<std::size_t, 128, 4> requests;
-    std::vector<std::thread> workers;
+    std::vector<std::jthread> workers;
 
     for (int worker = 0; worker < 4; ++worker) {
         workers.emplace_back([&] {
@@ -15,9 +15,7 @@ int main() {
             }
         });
     }
-    for (auto& worker : workers) {
-        worker.join();
-    }
 
-    std::cout << "Completed requests: " << requests.get_exact() << '\n';
+    std::cout << "Approximate requires: " << requests.get_approximate() << '\n';
+    std::cout << "Exact requests: " << requests.get_exact() << '\n';
 }
