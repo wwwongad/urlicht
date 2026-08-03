@@ -486,6 +486,13 @@ namespace urlicht::container {
             std::make_obj_using_allocator<mapped_container_type>(alloc)
           } { }
 
+        template <urlicht::concepts::can_construct<lower_bound_function_type> LowerBoundFn_>
+        explicit constexpr flat_map(LowerBoundFn_&& lower_bound_fn)
+        noexcept(std::is_nothrow_default_constructible_v<containers> &&
+                 std::is_nothrow_default_constructible_v<key_compare> &&
+                 std::is_nothrow_constructible_v<lower_bound_function_type, LowerBoundFn&&>)
+        : lower_bound_fn_{std::forward<LowerBoundFn_>(lower_bound_fn)} { }
+
         template <urlicht::concepts::can_construct<key_compare> KeyComp_>
         explicit constexpr flat_map(KeyComp_&& key_comp)
         noexcept(std::is_nothrow_default_constructible_v<containers> &&
