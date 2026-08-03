@@ -11,6 +11,7 @@
 #include <functional>
 
 namespace urlicht::functional::detail {
+
     template <typename T, size_t Size, size_t Align, bool IsConst, bool IsLvalue,
               bool IsRvalue, bool IsNoexcept, bool Copyable, typename Alloc>
     class flexible_function_base;
@@ -71,6 +72,10 @@ namespace urlicht::functional::detail {
 
         template <typename T>
         static constexpr bool is_callable_from_v = is_callable_from_<T>();
+
+        template <typename T, typename ...CArgs>
+        static constexpr bool nothrow_buildable_from_ =
+            use_sbo_v<std::remove_cvref_t<T>> && std::is_nothrow_constructible_v<std::remove_cvref_t<T>, CArgs&&...>;
 
         using storage_arg_t_ = std::conditional_t<IsConst, const storage_t_&, storage_t_&>;
         using call_func_ = R(*)(storage_arg_t_, Args...) noexcept(IsNoexcept);
@@ -176,7 +181,8 @@ namespace urlicht::functional::detail {
         };
 
         template <typename T, typename ...CArgs>
-        void construct_from([[maybe_unused]] allocator_type_& alloc, CArgs&&... args) {
+        void construct_from([[maybe_unused]] allocator_type_& alloc, CArgs&&... args)
+        noexcept(nothrow_buildable_from_<T, CArgs&&...>) {
             using U = std::remove_cvref_t<T>;
             if constexpr (use_sbo_v<U>) {
                 std::construct_at(
@@ -243,7 +249,8 @@ namespace urlicht::functional::detail {
         requires is_callable_from_v<F> &&
                  (!std::is_base_of_v<self_type_, std::remove_cvref_t<F>>) &&
                  std::constructible_from<std::remove_cvref_t<F>, F&&>
-        constexpr flexible_function_base(F&& func) {
+        constexpr flexible_function_base(F&& func)
+        noexcept(nothrow_buildable_from_<F, F&&>) {
             if constexpr (Copyable) {
                 static_assert(std::copy_constructible<std::remove_cvref_t<F>>, "F must be copyable");
             }
@@ -260,6 +267,8 @@ namespace urlicht::functional::detail {
                  (!std::is_base_of_v<self_type_, std::remove_cvref_t<F>>) &&
                  std::constructible_from<std::remove_cvref_t<F>, F&&>
         constexpr flexible_function_base(urlicht::internal::allocator_arg_t, const Alloc_& alloc, F&& func)
+        noexcept(nothrow_buildable_from_<F, F&&> &&
+                 std::is_nothrow_constructible_v<allocator_type_, const Alloc&>)
         : alloc_{alloc} {
             if constexpr (Copyable) {
                 static_assert(std::copy_constructible<std::remove_cvref_t<F>>, "F must be copyable");
@@ -279,7 +288,8 @@ namespace urlicht::functional::detail {
         requires is_callable_from_v<F> &&
                  (!std::is_base_of_v<self_type_, F>) &&
                  std::constructible_from<F, _Args&&...>
-        constexpr flexible_function_base(urlicht::internal::inplace_t<F>, _Args&&... args) {
+        constexpr flexible_function_base(urlicht::internal::inplace_t<F>, _Args&&... args)
+        noexcept(nothrow_buildable_from_<F, _Args&&...>) {
             static_assert(urlicht::concepts::decayed<F>, "F must be a decayed type");
             if constexpr (Copyable) {
                 static_assert(std::copy_constructible<F>, "F must be copyable");
@@ -294,7 +304,9 @@ namespace urlicht::functional::detail {
                  std::constructible_from<F, _Args&&...>
         constexpr flexible_function_base(
             urlicht::internal::allocator_arg_t, const Alloc_& alloc, urlicht::internal::inplace_t<F>, _Args&&... args
-        ) : alloc_{alloc} {
+        ) noexcept(nothrow_buildable_from_<F, _Args&&...> &&
+                   std::is_nothrow_constructible_v<allocator_type_, const Alloc&>)
+        : alloc_{alloc} {
             static_assert(urlicht::concepts::decayed<F>, "F must be a decayed type");
             if constexpr (Copyable) {
                 static_assert(std::copy_constructible<F>, "F must be copyable");
@@ -311,7 +323,7 @@ namespace urlicht::functional::detail {
                  std::constructible_from<F, std::initializer_list<C>, _Args&&...>
         constexpr explicit flexible_function_base(
             urlicht::internal::inplace_t<F>, std::initializer_list<C> il, _Args&&... args
-        ) {
+        ) noexcept(nothrow_buildable_from_<F, std::initializer_list<C>, _Args&&...>) {
             static_assert(urlicht::concepts::decayed<F>, "F must be a decayed type");
             if constexpr (Copyable) {
                 static_assert(std::copy_constructible<F>, "F must be copyable");
@@ -327,7 +339,9 @@ namespace urlicht::functional::detail {
         constexpr explicit flexible_function_base(
             urlicht::internal::allocator_arg_t, const Alloc_& alloc,
             urlicht::internal::inplace_t<F>, std::initializer_list<C> il, _Args&&... args
-        ) : alloc_{alloc} {
+        ) noexcept(nothrow_buildable_from_<F, std::initializer_list<C>, _Args&&...> &&
+                   std::is_nothrow_constructible_v<allocator_type_, const Alloc&>)
+        : alloc_{alloc} {
             static_assert(urlicht::concepts::decayed<F>, "F must be a decayed type");
             if constexpr (Copyable) {
                 static_assert(std::copy_constructible<F>, "F must be copyable");
@@ -347,7 +361,9 @@ namespace urlicht::functional::detail {
 
         template <urlicht::concepts::can_construct<allocator_type_> Alloc_, auto f>
         requires is_callable_from_v<decltype(f)>
-        constexpr flexible_function_base(urlicht::internal::allocator_arg_t, const Alloc_& alloc, urlicht::internal::nontype_t<f>)
+        constexpr flexible_function_base(
+            urlicht::internal::allocator_arg_t, const Alloc_& alloc, urlicht::internal::nontype_t<f>
+        ) noexcept(std::is_nothrow_constructible_v<allocator_type_, const Alloc&>)
         : alloc_{alloc} {
             this->vtable_ = &vtable_for_nontype<f>;
         }
@@ -445,43 +461,6 @@ namespace urlicht::functional::detail {
 
         constexpr ~flexible_function_base() noexcept {
             this->reset();
-        }
-
-        // operator ()
-        R operator() (Args... args) noexcept(IsNoexcept)
-        requires (!IsConst) && (!IsLvalue) && (!IsRvalue) {
-            UL_ASSERT(this->vtable_ != nullptr, "flexible_function is null");
-            return this->vtable_->call(storage_, std::forward<Args>(args)...);
-        }
-
-        R operator() (Args... args) const noexcept(IsNoexcept)
-        requires IsConst && (!IsLvalue) && (!IsRvalue) {
-            UL_ASSERT(this->vtable_ != nullptr, "flexible_function is null");
-            return this->vtable_->call(storage_, std::forward<Args>(args)...);
-        }
-
-        R operator() (Args... args) & noexcept(IsNoexcept)
-        requires (!IsConst) && IsLvalue && (!IsRvalue) {
-            UL_ASSERT(this->vtable_ != nullptr, "flexible_function is null");
-            return this->vtable_->call(storage_, std::forward<Args>(args)...);
-        }
-
-        R operator() (Args... args) && noexcept(IsNoexcept)
-        requires (!IsConst) && (!IsLvalue) && IsRvalue {
-            UL_ASSERT(this->vtable_ != nullptr, "flexible_function is null");
-            return this->vtable_->call(storage_, std::forward<Args>(args)...);
-        }
-
-        R operator() (Args... args) const & noexcept(IsNoexcept)
-        requires IsConst && IsLvalue && (!IsRvalue) {
-            UL_ASSERT(this->vtable_ != nullptr, "flexible_function is null");
-            return this->vtable_->call(storage_, std::forward<Args>(args)...);
-        }
-
-        R operator() (Args... args) const && noexcept(IsNoexcept)
-        requires IsConst && (!IsLvalue) && IsRvalue {
-            UL_ASSERT(this->vtable_ != nullptr, "flexible_function is null");
-            return this->vtable_->call(storage_, std::forward<Args>(args)...);
         }
 
         template <typename F, typename ... CArgs>
@@ -607,7 +586,113 @@ namespace urlicht::functional::detail {
         }
     };
 
+    //*************************** Decorator (Mixins) ***************************//
 
+    // We could have put all the function call operators with different specifiers in the base class,
+    // and ensured only one of them is instantiated by mutually exclusive require clauses. However, clangd
+    // is often not aware that only one is viable, thus giving a warning of "Cannot overload a member
+    // function with ref-qualifier '&' with a member function without a ref-qualifier". Therefore, it is
+    // necessary to separate them in mixin classes.
+
+    template <typename T, size_t Size, size_t Align, bool IsConst, bool IsLvalue,
+              bool IsRvalue, bool Noexcept, bool Copyable, typename Alloc>
+    class flexible_function_call_operator_;
+
+    template <typename R, size_t Size, size_t Align, bool Noexcept,
+              bool Copyable, typename Alloc, typename ...Args>
+    class flexible_function_call_operator_<R(Args...), Size, Align, false, false, false, Noexcept, Copyable, Alloc>
+    : public flexible_function_base<R(Args...), Size, Align, false, false, false, Noexcept, Copyable, Alloc> {
+        using base_t =
+            flexible_function_base<R(Args...), Size, Align, false, false, false, Noexcept, Copyable, Alloc>;
+    public:
+        using base_t::base_t;
+        using base_t::operator=;
+
+        R operator()(Args... args) noexcept(Noexcept) {
+            UL_ASSERT(this->vtable_ != nullptr, "flexible_function is null");
+            return this->vtable_->call(this->storage_, std::forward<Args>(args)...);
+        }
+    };
+
+    template <typename R, size_t Size, size_t Align, bool Noexcept,
+              bool Copyable, typename Alloc, typename ...Args>
+    class flexible_function_call_operator_<R(Args...), Size, Align, true, false, false, Noexcept, Copyable, Alloc>
+    : public flexible_function_base<R(Args...), Size, Align, true, false, false, Noexcept, Copyable, Alloc> {
+        using base_t =
+            flexible_function_base<R(Args...), Size, Align, true, false, false, Noexcept, Copyable, Alloc>;
+    public:
+        using base_t::base_t;
+        using base_t::operator=;
+
+        R operator()(Args... args) const noexcept(Noexcept) {
+            UL_ASSERT(this->vtable_ != nullptr, "flexible_function is null");
+            return this->vtable_->call(this->storage_, std::forward<Args>(args)...);
+        }
+    };
+
+    template <typename R, size_t Size, size_t Align, bool Noexcept,
+              bool Copyable, typename Alloc, typename ...Args>
+    class flexible_function_call_operator_<R(Args...), Size, Align, false, true, false, Noexcept, Copyable, Alloc>
+    : public flexible_function_base<R(Args...), Size, Align, false, true, false, Noexcept, Copyable, Alloc> {
+        using base_t =
+            flexible_function_base<R(Args...), Size, Align, false, true, false, Noexcept, Copyable, Alloc>;
+    public:
+        using base_t::base_t;
+        using base_t::operator=;
+
+        R operator()(Args... args) & noexcept(Noexcept) {
+            UL_ASSERT(this->vtable_ != nullptr, "flexible_function is null");
+            return this->vtable_->call(this->storage_, std::forward<Args>(args)...);
+        }
+    };
+
+    template <typename R, size_t Size, size_t Align, bool Noexcept,
+              bool Copyable, typename Alloc, typename ...Args>
+    class flexible_function_call_operator_<R(Args...), Size, Align, false, false, true, Noexcept, Copyable, Alloc>
+    : public flexible_function_base<R(Args...), Size, Align, false, false, true, Noexcept, Copyable, Alloc> {
+        using base_t =
+            flexible_function_base<R(Args...), Size, Align, false, false, true, Noexcept, Copyable, Alloc>;
+    public:
+        using base_t::base_t;
+        using base_t::operator=;
+
+        R operator()(Args... args) && noexcept(Noexcept) {
+            UL_ASSERT(this->vtable_ != nullptr, "flexible_function is null");
+            return this->vtable_->call(this->storage_, std::forward<Args>(args)...);
+        }
+    };
+
+    template <typename R, size_t Size, size_t Align, bool Noexcept,
+              bool Copyable, typename Alloc, typename ...Args>
+    class flexible_function_call_operator_<R(Args...), Size, Align, true, true, false, Noexcept, Copyable, Alloc>
+    : public flexible_function_base<R(Args...), Size, Align, true, true, false, Noexcept, Copyable, Alloc> {
+        using base_t =
+            flexible_function_base<R(Args...), Size, Align, true, true, false, Noexcept, Copyable, Alloc>;
+    public:
+        using base_t::base_t;
+        using base_t::operator=;
+
+        R operator()(Args... args) const & noexcept(Noexcept) {
+            UL_ASSERT(this->vtable_ != nullptr, "flexible_function is null");
+            return this->vtable_->call(this->storage_, std::forward<Args>(args)...);
+        }
+    };
+
+    template <typename R, size_t Size, size_t Align, bool Noexcept,
+              bool Copyable, typename Alloc, typename ...Args>
+    class flexible_function_call_operator_<R(Args...), Size, Align, true, false, true, Noexcept, Copyable, Alloc>
+    : public flexible_function_base<R(Args...), Size, Align, true, false, true, Noexcept, Copyable, Alloc> {
+        using base_t =
+            flexible_function_base<R(Args...), Size, Align, true, false, true, Noexcept, Copyable, Alloc>;
+    public:
+        using base_t::base_t;
+        using base_t::operator=;
+
+        R operator()(Args... args) const && noexcept(Noexcept) {
+            UL_ASSERT(this->vtable_ != nullptr, "flexible_function is null");
+            return this->vtable_->call(this->storage_, std::forward<Args>(args)...);
+        }
+    };
 }
 
 #endif //URLICHT_FLEXIBLE_FUNCTION_BASE_H

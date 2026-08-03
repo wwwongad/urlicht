@@ -10,17 +10,17 @@ namespace urlicht::functional {
 #define FLEXIBLE_FUNCTION_SPEC(QUALIFIERS, IS_CONST, IS_LVALUE, IS_RVALUE, IS_NOEXCEPT) \
     template <typename Ret, size_t OptimizeForSize, size_t OptimizeForAlign, typename Alloc, typename ...Args> \
     class flexible_function<Ret(Args...) QUALIFIERS, OptimizeForSize, OptimizeForAlign, Alloc> \
-        : public detail::flexible_function_base< \
+        : public detail::flexible_function_call_operator_< \
             Ret(Args...), OptimizeForSize, OptimizeForAlign, IS_CONST, IS_LVALUE, \
             IS_RVALUE, IS_NOEXCEPT, true, Alloc> { \
-        using base_t_ = detail::flexible_function_base< \
+        using base_t = detail::flexible_function_call_operator_< \
             Ret(Args...), OptimizeForSize, OptimizeForAlign, IS_CONST, IS_LVALUE, \
             IS_RVALUE, IS_NOEXCEPT, true, Alloc>; \
     public: \
-        using base_t_::base_t_; \
-        using base_t_::operator=; \
+        using base_t::base_t; \
+        using base_t::operator=; \
         using result_type = Ret; \
-        using allocator_type = base_t_::allocator_type_; \
+        using allocator_type = Alloc; \
         friend constexpr void swap(flexible_function& lhs, flexible_function& rhs) \
         noexcept(noexcept(lhs.swap(rhs))) { \
             lhs.swap(rhs); \
