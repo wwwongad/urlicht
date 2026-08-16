@@ -1,7 +1,7 @@
 #ifndef URLICHT_D_ARY_HEAP_MIXIN__H
 #define URLICHT_D_ARY_HEAP_MIXIN__H
 
-#include <urlicht/config.h>
+#include <urlicht/internal/config.h>
 #include <urlicht/concepts/concepts.h>
 #include <optional>
 

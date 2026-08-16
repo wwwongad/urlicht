@@ -13,7 +13,7 @@
 #include <limits>
 #include <concepts>
 #include <type_traits>
-#include <urlicht/config.h>
+#include <urlicht/internal/config.h>
 #include <urlicht/concepts/concepts.h>
 #include <urlicht/internal/scope_guard.h>
 

@@ -10,7 +10,7 @@
 #include <functional>
 #include <concepts>
 #include <format>
-#include <urlicht/config.h>
+#include <urlicht/internal/config.h>
 
 namespace urlicht::memory {
 

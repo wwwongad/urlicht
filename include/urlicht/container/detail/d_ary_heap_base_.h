@@ -1,7 +1,7 @@
 #ifndef URLICHT_D_ARY_HEAP_BASE_H
 #define URLICHT_D_ARY_HEAP_BASE_H
 
-#include <urlicht/config.h>
+#include <urlicht/internal/config.h>
 #include <urlicht/concepts/concepts.h>
 #include <urlicht/internal/tag.h>
 #include <urlicht/internal/scope_guard.h>

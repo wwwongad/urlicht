@@ -1,7 +1,7 @@
 #ifndef URLICHT_DENSE_DISJOINT_SETS_H
 #define URLICHT_DENSE_DISJOINT_SETS_H
 
-#include <urlicht/config.h>
+#include <urlicht/internal/config.h>
 #include <urlicht/concepts/concepts.h>
 #include <urlicht/internal/scope_guard.h>
 #include <algorithm>

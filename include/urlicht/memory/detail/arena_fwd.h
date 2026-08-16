@@ -2,7 +2,7 @@
 #define URLICHT_ARENA_FWD_H
 #include <memory>
 #include <urlicht/concepts/concepts.h>
-#include <urlicht/config.h>
+#include <urlicht/internal/config.h>
 #include <cstddef>
 #include <bit>
 #include <type_traits>

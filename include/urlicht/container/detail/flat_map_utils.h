@@ -3,7 +3,7 @@
 
 #include <concepts>
 #include <algorithm>
-#include <urlicht/config.h>
+#include <urlicht/internal/config.h>
 
 namespace urlicht::container::detail {
     // Range-based binary search

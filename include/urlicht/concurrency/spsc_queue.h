@@ -1,7 +1,7 @@
 #ifndef URLICHT_CONCURRENCY_SPSC_QUEUE_H
 #define URLICHT_CONCURRENCY_SPSC_QUEUE_H
 
-#include <urlicht/config.h>
+#include <urlicht/internal/config.h>
 #include <urlicht/concepts/concepts.h>
 #include <urlicht/concurrency/detail/utils_.h>
 #include <urlicht/internal/scope_guard.h>

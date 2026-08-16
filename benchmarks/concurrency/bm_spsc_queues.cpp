@@ -1,5 +1,5 @@
 #include <benchmark/benchmark.h>
-#include <urlicht/config.h>
+#include <urlicht/internal/config.h>
 #include <urlicht/concurrency/spsc_queue.h>
 #include "third_party/rigtorp_spsc.h"
 #include <queue>
@@ -361,4 +361,3 @@ BENCHMARK_TEMPLATE(BM_spsc_roundtrip, urlicht_spsc_queue, value_type1, queue_siz
 BENCHMARK_TEMPLATE(BM_spsc_roundtrip, urlicht_spsc_queue, value_type2, queue_size)
     ->Name("urlicht/roundtrip/info_t")
     ->UseRealTime()->Repetitions(10)->ReportAggregatesOnly(true);
-

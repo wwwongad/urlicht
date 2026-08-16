@@ -1,5 +1,5 @@
 #include <urlicht/concurrency/mpmc_queue.h>
-#include <urlicht/config.h>
+#include <urlicht/internal/config.h>
 #include <benchmark/benchmark.h>
 #include <algorithm>
 #include <array>

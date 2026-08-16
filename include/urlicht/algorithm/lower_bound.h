@@ -1,6 +1,6 @@
 #ifndef URLICHT_LOWER_BOUND_H
 #define URLICHT_LOWER_BOUND_H
-#include <urlicht/config.h>
+#include <urlicht/internal/config.h>
 #include <bit>
 #include <functional>
 #include <type_traits>
