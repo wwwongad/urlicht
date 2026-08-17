@@ -17,7 +17,7 @@ target_include_directories(urlicht INTERFACE
 )
 target_compile_features(urlicht INTERFACE cxx_std_20)
 
-option(URLICHT_BUILD_TESTS "Build the unit tests" ON)
+option(URLICHT_BUILD_TESTS "Build the unit tests" OFF)
 option(URLICHT_BUILD_BENCHMARKS "Build benchmarks" OFF)
 option(URLICHT_BUILD_EXAMPLES "Build examples" OFF)
 
