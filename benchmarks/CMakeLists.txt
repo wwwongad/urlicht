@@ -39,7 +39,12 @@ function(urlicht_configure_benchmark target)
     endif()
 
     if(MSVC)
-        target_compile_options(${target} PRIVATE /O2 /arch:AVX2 /GL)
+        target_compile_options(${target} PRIVATE
+            /Ox
+            /arch:AVX2
+            /GL
+            /DNDEBUG
+        )
         target_link_options(${target} PRIVATE /LTCG)
     else()
         target_compile_options(${target} PRIVATE
@@ -48,11 +53,12 @@ function(urlicht_configure_benchmark target)
             -mtune=native
             -flto=auto
             -fno-semantic-interposition
+            -DNDEBUG
         )
     endif()
 endfunction()
 
-add_executable(urlicht_benchmark ${URLICHT_BENCHMARK_SOURCES})
+add_executable(urlicht_benchmark container/bm_mutable_heap.cpp)
 
 target_link_libraries(urlicht_benchmark PRIVATE benchmark::benchmark_main)
 

@@ -1,5 +1,5 @@
-#ifndef URLICHT_D_ARY_HEAP_BASE_H
-#define URLICHT_D_ARY_HEAP_BASE_H
+#ifndef URLICHT_D_ARY_HEAP_BASE__H
+#define URLICHT_D_ARY_HEAP_BASE__H
 
 #include <urlicht/internal/config.h>
 #include <urlicht/concepts/concepts.h>
@@ -1331,10 +1331,12 @@ namespace urlicht::container {
 
             // Compare sizes first, then the sorted content of the two heaps in O(nlogn) time
             [[nodiscard]] friend constexpr bool operator==(const self_type_& lhs, const self_type_& rhs) {
-                if (lhs.size() != rhs.size())
+                if (lhs.size() != rhs.size()) {
                     return false;
-                if (lhs.empty() && rhs.empty()) [[unlikely]]
-                        return true;
+                }
+                if (lhs.empty() && rhs.empty()) [[unlikely]] {
+                    return true;
+                }
 
                 self_type_ lhs_copy = lhs, rhs_copy = rhs;
                 auto& lhs_comp = lhs.value_comp();
@@ -1362,13 +1364,15 @@ namespace urlicht::container {
             [[nodiscard]] friend constexpr auto operator<=>(const self_type_& lhs, const self_type_& rhs) {
                 auto size1 = lhs.size(), size2 = rhs.size();
                 if (size1 != size2) {
-                    if (size1 < size2)
+                    if (size1 < size2) {
                         return std::weak_ordering::less;
+                    }
                     return std::weak_ordering::greater;
                 }
 
-                if (lhs.empty() && rhs.empty()) [[unlikely]]
-                        return std::weak_ordering::equivalent;
+                if (lhs.empty() && rhs.empty()) [[unlikely]] {
+                    return std::weak_ordering::equivalent;
+                }
 
                 self_type_ lhs_copy = lhs, rhs_copy = rhs;
                 auto& lhs_comp = lhs_copy.value_comp();
@@ -1410,4 +1414,4 @@ namespace urlicht::container {
 }
 
 
-#endif //URLICHT_D_ARY_HEAP_H
+#endif //URLICHT_D_ARY_HEAP_BASE__H
