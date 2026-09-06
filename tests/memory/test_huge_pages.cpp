@@ -1,101 +1,38 @@
+#include <urlicht/memory/detail/available_huge_page_sizes.h>
 #include <urlicht/memory/huge_pages.h>
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <bit>
-#include <charconv>
 #include <compare>
 #include <cstddef>
-#include <filesystem>
-#include <fstream>
 #include <functional>
 #include <limits>
 #include <optional>
 #include <stdexcept>
-#include <string>
-#include <string_view>
 #include <system_error>
+#include <vector>
 
 namespace um = urlicht::memory;
 
-#if UL_PLATFORM_LINUX
-// Scans /sys/kernel/mm/hugepages/ for a page size that has at least one reserved huge page.
-std::optional<std::size_t> reserved_huge_page_size() {
-    namespace fs = std::filesystem;
-    constexpr std::string_view prefix = "hugepages-";
-    constexpr std::string_view suffix = "kB";
-
-    for (std::error_code ec; const auto& entry : fs::directory_iterator("/sys/kernel/mm/hugepages", ec)) {
-        const std::string name = entry.path().filename().string(); // e.g. "hugepages-2048kB"
-        if (!name.starts_with(prefix) || !name.ends_with(suffix)) {
-            continue;
+// Returns allocated huge pages, or nullopt when huge pages are unavailable.
+std::optional<um::huge_pages> try_make_huge_pages() {
+    for (const std::size_t page_size : um::detail::available_huge_page_sizes()) {
+        try {
+            const auto log_size =
+                static_cast<um::huge_pages::log_size_type>(std::countr_zero(page_size));
+            return um::huge_pages{log_size, 1U, um::protection::read_write, um::allocation_options::none};
+        } catch (const std::system_error&) {
+            // The page may have been allocated after available_huge_page_sizes() observed it.
         }
-        unsigned long long kib = 0;
-        const char* const first = name.data() + prefix.size();
-        if (const char* const last = name.data() + name.size() - suffix.size();
-            std::from_chars(first, last, kib).ec != std::errc{} || kib == 0U) {
-            continue;
-        }
-        std::ifstream nr_file(entry.path() / "nr_hugepages");
-        if (unsigned long long reserved = 0; !(nr_file >> reserved) || reserved == 0U) {
-            continue;
-        }
-        return static_cast<std::size_t>(kib) * 1024ULL;
     }
     return std::nullopt;
 }
 
-#elif UL_PLATFORM_WINDOWS
-
-// Large-page allocation requires SeLockMemoryPrivilege; attempt to enable it for this process.
-std::optional<std::size_t> huge_page_size_on_host() {
-    const SIZE_T minimum = ::GetLargePageMinimum();
-    if (minimum == 0) {
-        return std::nullopt;
-    }
-    HANDLE token = nullptr;
-    if (::OpenProcessToken(::GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &token) == 0) {
-        return std::nullopt;
-    }
-    TOKEN_PRIVILEGES privileges{};
-    privileges.PrivilegeCount = 1;
-    privileges.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
-    if (::LookupPrivilegeValueW(nullptr, SE_LOCK_MEMORY_NAME, &privileges.Privileges[0].Luid) == 0 ||
-        ::AdjustTokenPrivileges(token, FALSE, &privileges, 0, nullptr, nullptr) == 0 ||
-        ::GetLastError() != ERROR_SUCCESS) {
-        ::CloseHandle(token);
-        return std::nullopt;
-    }
-    ::CloseHandle(token);
-    return static_cast<std::size_t>(minimum);
-}
-
-#else // macOS
-
-std::optional<std::size_t> huge_page_size_on_host() {
-    // MAP_ALIGNED_SUPER is best effort; allocation may still fall back to 4KiB pages.
-    return std::size_t{1U} << 21U;
-}
-
-#endif
-
-// Returns allocated huge pages, or nullopt when huge pages are unavailable on this host.
-std::optional<um::huge_pages> try_make_huge_pages() {
-    const auto page_size = reserved_huge_page_size();
-    if (!page_size) {
-        return std::nullopt;
-    }
-    try {
-        const auto log_size = static_cast<um::huge_pages::log_size_type>(std::countr_zero(*page_size));
-        return um::huge_pages{log_size, 1U, um::protection::read_write, um::allocation_options::none};
-    } catch (...) {
-        return std::nullopt;
-    }
-}
-
 
 #define SKIP_IF_NO_HUGE_PAGES(maybe) \
-    if (!maybe) GTEST_SKIP() << "No huge pages reserved on this host " \
+    if (!maybe) GTEST_SKIP() << "No allocatable huge pages found on this host " \
                              << "(Linux: echo N > /proc/sys/vm/nr_hugepages; " \
                              << "Windows: run elevated so SeLockMemoryPrivilege is available)"
 
@@ -106,6 +43,17 @@ void free_released(um::huge_pages::pointer ptr, const um::huge_pages::size_type 
 #else // Windows
     ::VirtualFree(ptr, 0, MEM_RELEASE);
 #endif
+}
+
+TEST(HugePages, AvailablePageSizes) {
+    const std::vector<std::size_t> sizes = um::detail::available_huge_page_sizes();
+
+    EXPECT_TRUE(std::ranges::is_sorted(sizes));
+    EXPECT_EQ(std::ranges::adjacent_find(sizes), sizes.end());
+    for (const std::size_t size : sizes) {
+        EXPECT_GE(size, 4096U);
+        EXPECT_TRUE(std::has_single_bit(size));
+    }
 }
 
 TEST(HugePages, FlagEnumsOrCombinable) {
@@ -219,6 +167,7 @@ TEST(HugePages, MoveSemantics) {
 TEST(HugePages, Release) {
     auto maybe = try_make_huge_pages();
     SKIP_IF_NO_HUGE_PAGES(maybe);
+
     um::huge_pages hp = std::move(*maybe);
     const auto ptr = hp.get();
     const auto total = hp.size();
@@ -230,10 +179,12 @@ TEST(HugePages, Release) {
 
     auto maybe2 = try_make_huge_pages();
     SKIP_IF_NO_HUGE_PAGES(maybe2);
+
     um::huge_pages hp2 = std::move(*maybe2);
+    const auto ptr2 = hp2.get();
     const auto total2 = hp2.size();
     const auto info = hp2.release_info();
-    EXPECT_NE(info.ptr, nullptr);
+    EXPECT_NE(info.ptr, ptr2);
     EXPECT_EQ(info.count, total2);
     EXPECT_TRUE(hp2.empty());
     free_released(info.ptr, info.count);
@@ -272,7 +223,17 @@ TEST(HugePages, Reset) {
     EXPECT_TRUE(hp);
     EXPECT_EQ(hp.page_count(), 1U);
 
-    EXPECT_NO_THROW(hp.reset(log_size, 0U)); // Zero page count leaves the object empty
+    // Enum-based reset with a real allocation; guarded because the host's reserved
+    // size may not correspond to any huge_page_size enumerator.
+    if (hp.page_size() == (std::size_t{1U} << 21U)) {
+        EXPECT_NO_THROW(hp.reset(um::huge_page_size::SIZE_2MB, 1U));
+        EXPECT_TRUE(hp);
+        EXPECT_EQ(hp.page_count(), 1U);
+        EXPECT_EQ(hp.page_size(), std::size_t{1U} << 21U);
+    }
+
+    // Zero page count leaves the object empty
+    EXPECT_NO_THROW(hp.reset(urlicht::memory::huge_page_size::SIZE_2MB, 0U));
     EXPECT_TRUE(hp.empty());
 }
 
@@ -309,4 +270,3 @@ TEST(HugePages, Comparison) {
     EXPECT_TRUE((hp <=> e1) == std::strong_ordering::greater);
     EXPECT_TRUE((e1 <=> hp) == std::strong_ordering::less);
 }
-
