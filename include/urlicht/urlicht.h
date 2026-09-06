@@ -26,6 +26,7 @@
 #include <urlicht/memory/arena_view.h>
 #include <urlicht/memory/concurrent_arena.h>
 #include <urlicht/memory/pmr/arena_resource.h>
+#include <urlicht/memory/huge_pages.h>
 #include <urlicht/memory/tagged_ptr.h>
 
 #endif // URLICHT_URLICHT_H
