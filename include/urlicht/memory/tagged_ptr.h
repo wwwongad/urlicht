@@ -391,7 +391,6 @@ namespace urlicht::memory {
         friend std::ostream& operator<<(std::ostream& os, const tagged_ptr& ptr) {
             return os << ptr.ptr_;
         }
-
     };
 
     template <typename T, bool IS_OWNING = true, typename... Args>
@@ -414,47 +413,34 @@ namespace urlicht::memory {
     template <typename P, typename D>
     tagged_ptr(P*, D) -> tagged_ptr<std::remove_pointer_t<P>, true, D>;
 
+    namespace detail {
+        template <typename>
+        struct is_tagged_ptr : std::false_type {};
+        template <typename T, bool IS_OWNING, typename Deleter>
+        struct is_tagged_ptr<urlicht::memory::tagged_ptr<T, IS_OWNING, Deleter>> : std::true_type {};
 
-    // Structural binding
-    template <std::size_t I, typename T, bool IS_OWNING, typename Deleter>
-    constexpr auto get(const tagged_ptr<T, IS_OWNING, Deleter>& p)
-    noexcept -> std::conditional_t<I == 0,
-                                   typename tagged_ptr<T, IS_OWNING, Deleter>::pointer,
-                                   typename tagged_ptr<T, IS_OWNING, Deleter>::tag_type> {
-        if constexpr (I == 0) {
-            return p.get();
-        } else {
-            return p.tag();
-        }
+        template <typename>
+        struct is_std_default_delete : std::false_type {};
+        template <typename X>
+        struct is_std_default_delete<std::default_delete<X>> : std::true_type {};
     }
+} // namespace urlicht::memory
 
-    template <std::size_t I, typename T, bool IS_OWNING, typename Deleter>
-    constexpr auto get(tagged_ptr<T, IS_OWNING, Deleter>& p)
-    noexcept -> std::conditional_t<I == 0,
-                                   typename tagged_ptr<T, IS_OWNING, Deleter>::pointer,
-                                   typename tagged_ptr<T, IS_OWNING, Deleter>::tag_type> {
-        if constexpr (I == 0) {
-            return p.get();
-        } else {
-            return p.tag();
-        }
-    }
-
-    template <std::size_t I, typename T, bool IS_OWNING, typename Deleter>
-    constexpr auto get(tagged_ptr<T, IS_OWNING, Deleter>&& p)
-    noexcept -> std::conditional_t<I == 0,
-                                   typename tagged_ptr<T, IS_OWNING, Deleter>::pointer,
-                                   typename tagged_ptr<T, IS_OWNING, Deleter>::tag_type> {
-        if constexpr (I == 0) {
-            return p.get();
-        } else {
-            return p.tag();
-        }
-    }
-
-} // namespace urlicht
+namespace urlicht {
+    template <typename T>
+    inline constexpr bool is_urlicht_tagged_ptr_v = memory::detail::is_tagged_ptr<T>::value;
+}
 
 namespace std {
+    template <std::size_t I, typename Tp>
+    requires urlicht::is_urlicht_tagged_ptr_v<std::remove_cvref_t<Tp>>
+    [[nodiscard]] constexpr auto get(Tp&& p) noexcept {
+        if constexpr (I == 0) {
+            return p.get();
+        } else {
+            return p.tag();
+        }
+    }
 
     // Structural binding
     // tuple_size
@@ -476,25 +462,10 @@ namespace std {
     struct formatter<urlicht::memory::tagged_ptr<T, IS_OWNING, Deleter>, CharT>
       : std::formatter<uintptr_t, CharT> {
         template <typename FormatContext>
-        auto format(const urlicht::memory::tagged_ptr<T, IS_OWNING, Deleter>& p,
-                    FormatContext& ctx) const {
+        auto format(const urlicht::memory::tagged_ptr<T, IS_OWNING, Deleter>& p, FormatContext& ctx) const {
             return std::formatter<uintptr_t, CharT>::format(p.raw(), ctx);
         }
     };
-
-    namespace detail_pointer_traits {
-
-        template <typename D>
-        struct is_default_delete : std::false_type {};
-
-        template <typename X>
-        struct is_default_delete<std::default_delete<X>> : std::true_type {};
-
-        template <typename Del>
-        inline constexpr bool is_default_delete_v = is_default_delete<Del>::value;
-
-    }
-
 
     template <typename T, bool IS_OWNING, typename Deleter>
     struct pointer_traits<urlicht::memory::tagged_ptr<T, IS_OWNING, Deleter>> {
@@ -510,14 +481,14 @@ namespace std {
                 U,
                 IS_OWNING,
                 std::conditional_t<
-                    detail_pointer_traits::is_default_delete_v<Deleter>,
+                    urlicht::memory::detail::is_std_default_delete<Deleter>::value,
                     std::default_delete<U>,
                     Deleter
                 >
             >;
 
         constexpr static pointer pointer_to(element_type& r) noexcept
-        requires std::default_initializable<typename pointer::deleter_type> { // Since Deleter can't be provided here
+        requires std::default_initializable<typename pointer::deleter_type> {
             return pointer(std::addressof(r));
         }
 
@@ -533,7 +504,6 @@ namespace std {
             return std::hash<uintptr_t>{}(p.raw()); // both pointer and tag
         }
     };
-
 } // namespace std
 
     #endif //URLICHT_TAGGED_PTR_H
