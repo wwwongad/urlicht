@@ -245,7 +245,7 @@ namespace urlicht::memory {
                     ec,
                     std::format(
                         "Failed to lock {} huge page(s) of {} bytes "
-                        "(total={} bytes, on_fault={}, errno={})",
+                        "(total={} bytes, on_fault={}, native error code={})",
                         page_cnt_, page_size_, total_size_, on_fault, ec.value()
                     )
                 };
@@ -283,7 +283,8 @@ namespace urlicht::memory {
                 throw std::system_error{
                     ec,
                     std::format(
-                        "Failed to unlock {} huge page(s) of {} bytes (total={} bytes, errno={})",
+                        "Failed to unlock {} huge page(s) of {} bytes"
+                        " (total={} bytes, native error code={})",
                         page_cnt_, page_size_, total_size_, ec.value()
                     )
                 };
@@ -309,6 +310,22 @@ namespace urlicht::memory {
             page_cnt_ = page_count;
             total_size_ = allocation_size_(page_size_, page_cnt_);
             do_allocate_(prot, options);
+        }
+
+        /**
+         * @brief Deallocate the huge pages and allocate new ones with the specified parameters.
+         * @param page_size A huge_page_size enum to indicate the size of the huge page.
+         * @param page_count The number of pages to allocate. Defaults to 1.
+         * @param prot The memory protection flags as a portable protection mask.
+         *        Defaults to protection::read_write.
+         * @param options Portable allocation options, OR-combinable. Defaults to allocation_options::populate.
+         *        Options without a platform equivalent are silently ignored (see allocation_options).
+         */
+        void reset(const huge_page_size page_size,
+                   const size_type page_count = 1ULL,
+                   const protection prot = protection::read_write,
+                   const allocation_options options = allocation_options::populate) {
+            reset(to_log_size_(page_size), page_count, prot, options);
         }
 
         void reset() noexcept {
@@ -578,7 +595,7 @@ namespace urlicht::memory {
                     ec,
                     std::format(
                         "Failed to allocate {} huge page(s) of {} bytes "
-                        "(total={} bytes, native_prot=0x{:x}, flags=0x{:x}, errno={})",
+                        "(total={} bytes, native_prot=0x{:x}, flags=0x{:x}, native error code={})",
                         page_cnt, page_size, total_size,
                         static_cast<unsigned>(native_prot),
                         static_cast<unsigned>(flags),
