@@ -22,7 +22,7 @@ std::optional<um::huge_pages> try_make_huge_pages() {
         try {
             const auto log_size =
                 static_cast<um::huge_pages::log_size_type>(std::countr_zero(page_size));
-            return um::huge_pages{log_size, 1U, um::protection::read_write, um::allocation_options::none};
+            return um::huge_pages{log_size, 1U, um::huge_page_protection::read_write, um::huge_page_allocation_options::none};
         } catch (const std::system_error&) {
             // The page may have been allocated after available_huge_page_sizes() observed it.
         }
@@ -57,30 +57,30 @@ TEST(HugePages, AvailablePageSizes) {
 }
 
 TEST(HugePages, FlagEnumsOrCombinable) {
-    using um::allocation_options;
-    using um::protection;
+    using um::huge_page_allocation_options;
+    using um::huge_page_protection;
 
-    static_assert((protection::read | protection::write) == protection::read_write);
-    static_assert((protection::read | protection::execute) == protection::read_execute);
-    static_assert((protection::write | protection::execute) == protection::write_execute);
-    static_assert((protection::read | protection::write | protection::execute)
-                  == protection::read_write_execute);
-    static_assert((protection::read_write & protection::read) == protection::read);
-    static_assert((protection::read & protection::write) == protection::none);
+    static_assert((huge_page_protection::read | huge_page_protection::write) == huge_page_protection::read_write);
+    static_assert((huge_page_protection::read | huge_page_protection::execute) == huge_page_protection::read_execute);
+    static_assert((huge_page_protection::write | huge_page_protection::execute) == huge_page_protection::write_execute);
+    static_assert((huge_page_protection::read | huge_page_protection::write | huge_page_protection::execute)
+                  == huge_page_protection::read_write_execute);
+    static_assert((huge_page_protection::read_write & huge_page_protection::read) == huge_page_protection::read);
+    static_assert((huge_page_protection::read & huge_page_protection::write) == huge_page_protection::none);
 
-    auto prot = protection::none;
-    prot |= protection::read;
-    prot |= protection::execute;
-    EXPECT_EQ(prot, protection::read_execute);
-    prot &= protection::read;
-    EXPECT_EQ(prot, protection::read);
+    auto prot = huge_page_protection::none;
+    prot |= huge_page_protection::read;
+    prot |= huge_page_protection::execute;
+    EXPECT_EQ(prot, huge_page_protection::read_execute);
+    prot &= huge_page_protection::read;
+    EXPECT_EQ(prot, huge_page_protection::read);
 
-    static_assert((allocation_options::populate | allocation_options::locked) != allocation_options::none);
-    static_assert((allocation_options::populate & allocation_options::none) == allocation_options::none);
+    static_assert((huge_page_allocation_options::populate | huge_page_allocation_options::locked) != huge_page_allocation_options::none);
+    static_assert((huge_page_allocation_options::populate & huge_page_allocation_options::none) == huge_page_allocation_options::none);
 
-    auto options = allocation_options::none;
-    options |= allocation_options::locked;
-    EXPECT_EQ(options, allocation_options::locked);
+    auto options = huge_page_allocation_options::none;
+    options |= huge_page_allocation_options::locked;
+    EXPECT_EQ(options, huge_page_allocation_options::locked);
 }
 
 void check_empty(const um::huge_pages& hp) noexcept {

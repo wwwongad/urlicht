@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include <urlicht/container/dense_disjoint_sets.h>
-#include <urlicht/memory/arena_view.h>
+#include <urlicht/memory/arena.h>
+#include <urlicht/memory/resource_view.h>
 
 using namespace urlicht::container;
 
@@ -38,19 +39,19 @@ TEST(DenseDisjointSets, InitializesWithSingletons) {
 }
 
 template <typename T>
-using arena_vec = std::vector<T, urlicht::memory::arena_view<T>>;
+using arena_vec = std::vector<T, urlicht::memory::resource_view<T>>;
 
 TEST(DenseDisjointSets, StatefulAlloc) {
     urlicht::memory::arena<> arena{1 << 16};
-    urlicht::memory::arena_view<uint32_t> alloc{arena};
+    urlicht::memory::resource_view<uint32_t> alloc{arena};
 
     dense_disjoint_sets<uint32_t, {}, arena_vec> ds(5, alloc);
     EXPECT_FALSE(ds.empty());
     EXPECT_EQ(ds.size(), 5U);
-    EXPECT_EQ(ds.parents().get_allocator().get_arena(), arena);
-    EXPECT_EQ(ds.metrics().get_allocator().get_arena(), arena);
+    EXPECT_EQ(ds.parents().get_allocator().get_resource(), arena);
+    EXPECT_EQ(ds.metrics().get_allocator().get_resource(), arena);
 
-    static_assert(std::uses_allocator_v<decltype(ds), urlicht::memory::arena_view<uint32_t>>);
+    static_assert(std::uses_allocator_v<decltype(ds), urlicht::memory::resource_view<uint32_t>>);
 
     using small_ds_t = // No metrics container
         dense_disjoint_sets<uint16_t, {.union_by = dense_disjoint_sets_union_policy::none}, arena_vec>;
@@ -58,7 +59,7 @@ TEST(DenseDisjointSets, StatefulAlloc) {
     small_ds_t ds2(100, alloc);
     EXPECT_FALSE(ds2.empty());
     EXPECT_EQ(ds2.size(), 100U);
-    EXPECT_EQ(ds2.parents().get_allocator().get_arena(), arena);
+    EXPECT_EQ(ds2.parents().get_allocator().get_resource(), arena);
 }
 
 auto make_sample_sets() {

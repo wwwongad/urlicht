@@ -1,7 +1,8 @@
 #include <urlicht/container/d_ary_heap.h>
 #include <gtest/gtest.h>
 #include <urlicht/container/inplace_vector.h>
-#include <urlicht/memory/arena_view.h>
+#include <urlicht/memory/arena.h>
+#include <urlicht/memory/resource_view.h>
 #include <algorithm>
 #include <array>
 #include <random>
@@ -509,15 +510,15 @@ TEST(DAryHeapEdgeCase, UnstableDuplicates) {
 
 template <typename Heap, typename Arena>
 void expect_allocator_propagated(const Heap& heap, const Arena& expected_arena) {
-    EXPECT_EQ(heap.container().get_allocator().get_arena(), expected_arena);
+    EXPECT_EQ(heap.container().get_allocator().get_resource(), expected_arena);
     if constexpr (Heap::is_mutable()) {
-        EXPECT_EQ(heap.id_to_pos_map().get_allocator().get_arena(), expected_arena);
+        EXPECT_EQ(heap.id_to_pos_map().get_allocator().get_resource(), expected_arena);
     }
     if constexpr (Heap::reuse_id()) {
-        EXPECT_EQ(heap.free_id_pool().get_allocator().get_arena(), expected_arena);
+        EXPECT_EQ(heap.free_id_pool().get_allocator().get_resource(), expected_arena);
     }
     if constexpr (Heap::track_gen()) {
-        EXPECT_EQ(heap.id_to_gen_map().get_allocator().get_arena(), expected_arena);
+        EXPECT_EQ(heap.id_to_gen_map().get_allocator().get_resource(), expected_arena);
     }
 }
 
@@ -525,7 +526,7 @@ template <typename HeapType>
 class DAryHeapAlloc : public testing::Test {};
 
 template <typename T>
-using arena_vec = std::vector<T, urlicht::memory::arena_view<T>>;
+using arena_vec = std::vector<T, urlicht::memory::resource_view<T>>;
 
 using alloc_heap1_t = urlicht::container::d_ary_heap<int, arena_vec>;
 using alloc_heap2_t = urlicht::container::d_ary_heap<int, arena_vec, std::less<>, {.stable = true}>;
@@ -537,10 +538,10 @@ using alloc_heap_types = testing::Types<alloc_heap1_t, alloc_heap2_t, alloc_heap
 TYPED_TEST_SUITE(DAryHeapAlloc, alloc_heap_types);
 
 TYPED_TEST(DAryHeapAlloc, ConstructsFromAlloc) {
-    static_assert(std::uses_allocator_v<TypeParam, urlicht::memory::arena_view<int>>);
+    static_assert(std::uses_allocator_v<TypeParam, urlicht::memory::resource_view<int>>);
 
     urlicht::memory::arena<> arena{1 << 12};
-    urlicht::memory::arena_view<int> alloc{arena};
+    urlicht::memory::resource_view<int> alloc{arena};
 
     TypeParam heap{alloc};
     EXPECT_TRUE(heap.empty());
@@ -559,7 +560,7 @@ TYPED_TEST(DAryHeapAlloc, ConstructsFromAlloc) {
 
 TYPED_TEST(DAryHeapAlloc, ConstructsFromAllocHeapified) {
     urlicht::memory::arena<> arena{1 << 12};
-    urlicht::memory::arena_view<int> alloc{arena};
+    urlicht::memory::resource_view<int> alloc{arena};
 
     TypeParam heap{urlicht::heapified, std::array{9, 7, 8, 1, 3}, alloc};
     EXPECT_TRUE(is_d_ary_heapified(heap));

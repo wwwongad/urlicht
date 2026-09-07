@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
-#include <urlicht/memory/arena_view.h>
+#include <urlicht/memory/arena.h>
+#include <urlicht/memory/resource_view.h>
 #include <algorithm>
 #include <deque>
 #include <limits>
@@ -13,11 +14,11 @@ static bool is_aligned(void* p, const size_t align) {
     return reinterpret_cast<std::uintptr_t>(p) % align == 0;
 }
 
-TEST(ArenaView, BasicAllocation) {
+TEST(ResourceView, BasicAllocation) {
 
     auto test_alloc = [&](size_t size) {
         urlicht::memory::arena arena(65536);
-        urlicht::memory::arena_view<int> view(arena);
+        urlicht::memory::resource_view<int> view(arena);
         auto& init = arena.get_initial_buffer();
         auto* ptr = view.allocate(size);
         EXPECT_NE(ptr, nullptr);
@@ -31,7 +32,7 @@ TEST(ArenaView, BasicAllocation) {
 
     // Heap chunk fall-back
     urlicht::memory::arena arena(1024 * sizeof(int));
-    urlicht::memory::arena_view<int> view(arena);
+    urlicht::memory::resource_view<int> view(arena);
 
     auto* ptr = view.allocate(2048);
     EXPECT_NE(ptr, nullptr);
@@ -43,9 +44,9 @@ TEST(ArenaView, BasicAllocation) {
     EXPECT_GE(chunk->actual_buffer_size(), 2048 * sizeof(int));
 }
 
-TEST(ArenaView, AllocateAtLeast) {
-    urlicht::memory::arena<false> arena(256);
-    urlicht::memory::arena_view<int, false, decltype(arena)> view(arena);
+TEST(ResourceView, AllocateAtLeast) {
+    urlicht::memory::arena<{.use_upstream = false}> arena(256);
+    urlicht::memory::resource_view<int, decltype(arena)> view(arena);
 
     auto& init = arena.get_initial_buffer();
     auto* before_curr = init.curr;
@@ -67,11 +68,11 @@ struct large_align {
     alignas(128) int d;
 };
 
-TEST(ArenaView, MultiAlignment) {
+TEST(ResourceView, MultiAlignment) {
     urlicht::memory::arena arena(65536);
 
     auto test_align = [&] <typename T> ([[maybe_unused]] T placeholder) {
-        urlicht::memory::arena_view<T> view(arena);
+        urlicht::memory::resource_view<T> view(arena);
         auto* ptr = view.allocate(16);
         EXPECT_NE(ptr, nullptr);
         EXPECT_TRUE(is_aligned(ptr, alignof(T)));
@@ -83,9 +84,9 @@ TEST(ArenaView, MultiAlignment) {
 }
 
 
-TEST(ArenaView, WithoutUpstream) {
-    urlicht::memory::arena<false> arena(2048);
-    urlicht::memory::arena_view<std::byte, false, decltype(arena)> view(arena);
+TEST(ResourceView, WithoutUpstream) {
+    urlicht::memory::arena<{.use_upstream = false}> arena(2048);
+    urlicht::memory::resource_view<std::byte, decltype(arena)> view(arena);
 
     auto* p1 = view.allocate(512);
     EXPECT_NE(p1, nullptr);
@@ -97,21 +98,21 @@ TEST(ArenaView, WithoutUpstream) {
     EXPECT_EQ(p2, nullptr);
 }
 
-TEST(ArenaView, ExtremeSizes) {
+TEST(ResourceView, ExtremeSizes) {
     constexpr size_t large_size = 281'474'976'710'656;
     constexpr size_t max_size = std::numeric_limits<size_t>::max();
 
     urlicht::memory::arena<> arena;
-    urlicht::memory::arena_view<int> view(arena);
+    urlicht::memory::resource_view<int> view(arena);
     void* p{};
     EXPECT_THROW(p = view.allocate(large_size), std::bad_alloc);
     EXPECT_THROW(p = view.allocate(max_size), std::bad_array_new_length);
     EXPECT_EQ(p, nullptr);
 }
 
-TEST(ArenaView, AllocateBytes) {
+TEST(ResourceView, AllocateBytes) {
     urlicht::memory::arena arena(1024);
-    urlicht::memory::arena_view<std::byte> view(arena);
+    urlicht::memory::resource_view<std::byte> view(arena);
 
     void* p1 = view.allocate_bytes(48, 16);
     ASSERT_NE(p1, nullptr);
@@ -126,24 +127,24 @@ TEST(ArenaView, AllocateBytes) {
     EXPECT_GE(chunk->actual_buffer_size(), 4096u);
 }
 
-TEST(ArenaView, AllocateBytesOnExhaustion) {
+TEST(ResourceView, AllocateBytesOnExhaustion) {
     // Safe mode
-    urlicht::memory::arena<false> arena(128);
-    urlicht::memory::arena_view<std::byte, false, decltype(arena)> view(arena);
+    urlicht::memory::arena<{.use_upstream = false}> arena(128);
+    urlicht::memory::resource_view<std::byte, decltype(arena)> view(arena);
     ASSERT_NE(view.allocate_bytes(128, 1), nullptr);
     EXPECT_THROW((void)view.allocate_bytes(1, 1), std::bad_alloc);
 
     // Unsafe mode
-    urlicht::memory::arena<false> arena2(64);
-    urlicht::memory::arena_view<std::byte, true, decltype(arena)> view2(arena2);
+    urlicht::memory::arena<{.use_upstream = false}> arena2(64);
+    urlicht::memory::resource_view<std::byte, decltype(arena), {.unchecked_allocate = true}> view2(arena2);
     void* p = view2.allocate_bytes(64, 1);
     EXPECT_NE(p, nullptr);
 }
 
-TEST(ArenaView, SharingArena) {
+TEST(ResourceView, SharingResource) {
     urlicht::memory::arena arena(1 << 20);
-    urlicht::memory::arena_view<int> vi(arena);
-    urlicht::memory::arena_view<double> vd(arena);
+    urlicht::memory::resource_view<int> vi(arena);
+    urlicht::memory::resource_view<double> vd(arena);
     auto& init = arena.get_initial_buffer();
 
     for (int i = 1; i <= 10; ++i) {
@@ -157,9 +158,9 @@ TEST(ArenaView, SharingArena) {
     }
 }
 
-TEST(ArenaView, STDVectorUsage) {
+TEST(ResourceView, STDVectorUsage) {
     urlicht::memory::arena arena(65536);
-    std::vector<std::string, urlicht::memory::arena_view<std::string>> vec(arena);
+    std::vector<std::string, urlicht::memory::resource_view<std::string>> vec(arena);
 
     for (int i = 0; i < 100; ++i) {
         vec.push_back(std::to_string(i));
@@ -175,15 +176,15 @@ TEST(ArenaView, STDVectorUsage) {
     EXPECT_NE(arena.get_chunk_footer(), nullptr);
 }
 
-TEST(ArenaView, NestedView) {
-    urlicht::memory::arena<false> arena(1 << 20);
-    using char_arena_view = urlicht::memory::arena_view<char, false, decltype(arena)>;
-    using string_type = std::basic_string<char, std::char_traits<char>, char_arena_view>;
-    using string_arena_view = urlicht::memory::arena_view<string_type, false, decltype(arena)>;
+TEST(ResourceView, NestedView) {
+    urlicht::memory::arena<{.use_upstream = false}> arena(1 << 20);
+    using char_resource_view = urlicht::memory::resource_view<char, decltype(arena)>;
+    using string_type = std::basic_string<char, std::char_traits<char>, char_resource_view>;
+    using string_resource_view = urlicht::memory::resource_view<string_type, decltype(arena)>;
 
     using vector_type = std::vector<
         string_type,
-        std::scoped_allocator_adaptor<string_arena_view>
+        std::scoped_allocator_adaptor<string_resource_view>
     >;
 
     auto& init = arena.get_initial_buffer();
@@ -200,32 +201,32 @@ TEST(ArenaView, NestedView) {
     EXPECT_GE(init.end() - init.curr, 10 * sizeof(std::string) + 1000);
 }
 
-TEST(ArenaView, NodeBasedContainers) {
+TEST(ResourceView, NodeBasedContainers) {
     urlicht::memory::arena arena;
 
-    std::list<int, urlicht::memory::arena_view<int>> list(arena);
+    std::list<int, urlicht::memory::resource_view<int>> list(arena);
     for (int i = 0; i < 16; ++i) {
         list.push_back(i);
     }
     EXPECT_EQ(list.size(), 16);
 
-    std::unordered_set<int, std::hash<int>, std::equal_to<>, urlicht::memory::arena_view<int>> set(arena);
+    std::unordered_set<int, std::hash<int>, std::equal_to<>, urlicht::memory::resource_view<int>> set(arena);
     for (int i = 0; i < 48; ++i) {
         set.insert(i * 777 % 331);
     }
     EXPECT_EQ(set.size(), 48);
 
-    using map_arena_view = urlicht::memory::arena_view<std::pair<const int, std::string>>;
-    std::map<int, std::string, std::less<>, map_arena_view> map(arena);
+    using map_resource_view = urlicht::memory::resource_view<std::pair<const int, std::string>>;
+    std::map<int, std::string, std::less<>, map_resource_view> map(arena);
     for (int i = 0; i < 1024; ++i) {
         map.emplace(i, std::to_string(i));
     }
     EXPECT_EQ(map.size(), 1024);
 }
 
-TEST(ArenaView, UnsafeMode) {
-    urlicht::memory::arena<false> arena(1 << 28);  // 256 MB
-    using view_type = urlicht::memory::arena_view<int, true, decltype(arena)>;
+TEST(ResourceView, UnsafeMode) {
+    urlicht::memory::arena<{.use_upstream = false}> arena(1 << 28);  // 256 MB
+    using view_type = urlicht::memory::resource_view<int, decltype(arena),{.unchecked_allocate = true}>;
     std::vector<int, view_type> vec(arena);
 
     for (int i = 0; i < 1024; ++i) {
@@ -237,9 +238,9 @@ TEST(ArenaView, UnsafeMode) {
     EXPECT_EQ(vec.capacity(), 1 << 25);
 }
 
-TEST(ArenaView, FrameLoopWithReset) {
-    urlicht::memory::arena<false> arena(1 << 14);
-    using view_int = urlicht::memory::arena_view<int, true, decltype(arena)>;
+TEST(ResourceView, FrameLoopWithReset) {
+    urlicht::memory::arena<{.use_upstream = false}> arena(1 << 14);
+    using view_int = urlicht::memory::resource_view<int, decltype(arena), {.unchecked_allocate = true}>;
     for (int i = 0; i < 1 << 20; ++i) {
         {
             std::vector<int, view_int> vec(arena);
@@ -254,9 +255,9 @@ TEST(ArenaView, FrameLoopWithReset) {
     EXPECT_EQ(init.end(), init.curr);
 }
 
-TEST(ArenaView, EqualityByArenaPointer) {
+TEST(ResourceView, EqualityByResourcePointer) {
     urlicht::memory::arena a(4096), b(4096);
-    const urlicht::memory::arena_view<int> va(a), va2(a), vb(b);
+    const urlicht::memory::resource_view<int> va(a), va2(a), vb(b);
     EXPECT_TRUE(va == va2);
     EXPECT_FALSE(va == vb);
 }

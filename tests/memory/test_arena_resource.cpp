@@ -8,7 +8,7 @@ static bool is_aligned(void* p, const size_t align) {
 }
 
 TEST(ArenaResource, AllocAndAlign) {
-    urlicht::memory::pmr::arena_resource<urlicht::memory::arena<false>> arena(65536);
+    urlicht::memory::pmr::arena_resource<urlicht::memory::arena<{.use_upstream = false}>> arena(65536);
     std::pmr::memory_resource* res = &arena;
     auto test_alloc = [&](const size_t size, const size_t align = 8u) {
         auto* ptr = static_cast<char*>(res->allocate(size, align));
@@ -54,7 +54,7 @@ TEST(ArenaResource, ExtremeSizesAndBadAlloc) {
     EXPECT_THROW(ptr = alloc.allocate(MAX_SIZE), std::bad_array_new_length);
     EXPECT_EQ(ptr, nullptr);
 
-    urlicht::memory::pmr::arena_resource<urlicht::memory::arena<false>> exhaustive_arena(10000);
+    urlicht::memory::pmr::arena_resource<urlicht::memory::arena<{.use_upstream = false}>> exhaustive_arena(10000);
     std::pmr::polymorphic_allocator<char> alloc2(&exhaustive_arena);
     EXPECT_THROW(ptr = alloc2.allocate(10001), std::bad_alloc); // From arena
     EXPECT_EQ(ptr, nullptr);
@@ -114,7 +114,9 @@ TEST(ArenaResource, PMRNodeContainers) {
 }
 
 TEST(ArenaResource, UnsafeMode) {
-    urlicht::memory::pmr::arena_resource<urlicht::memory::arena<false>, true> unsafe_arena((1 << 18) * 4 + 3);
+    urlicht::memory::pmr::arena_resource<
+        urlicht::memory::arena<{.use_upstream = false}>, {.unchecked_allocate = true}
+    > unsafe_arena((1 << 18) * 4 + 3);
     std::pmr::vector<int> vec(&unsafe_arena);
 
     for (int i = 0; i < 1024; ++i) {

@@ -1,8 +1,9 @@
-#ifndef URLICHT_CONCURRENT_ARENA_H
-#define URLICHT_CONCURRENT_ARENA_H
+#ifndef URLICHT_MEMORY_CONCURRENT_ARENA_H
+#define URLICHT_MEMORY_CONCURRENT_ARENA_H
 
 #include <urlicht/memory/detail/arena_fwd.h>
 #include <urlicht/memory/arena.h>
+#include <urlicht/memory/allocation_options.h>
 #include <mutex>
 #include <concepts>
 #include <cstddef>
@@ -13,17 +14,17 @@ namespace urlicht::memory {
      * @brief A thread-safe wrapper for urlicht::memory::arena that uses std::mutex for synchronization.
      *        It preserves all methods provided by urlicht::memory::arena. See arena.h for detail.
      */
-    template <bool UseUpstream,
+    template <resource_options Opt,
               arena_growth_policy GrowthPolicy,
               urlicht::concepts::allocator UpstreamAlloc>
-    class concurrent_arena : private arena<UseUpstream, GrowthPolicy, UpstreamAlloc> {
+    class concurrent_arena : private arena<Opt, GrowthPolicy, UpstreamAlloc> {
         static_assert(std::same_as<typename UpstreamAlloc::value_type, std::byte>,
             "Upstream allocator must allocate std::byte");
 
     public:
         using upstream_allocator = UpstreamAlloc;
         using upstream_traits = std::allocator_traits<upstream_allocator>;
-        using arena_type = arena<UseUpstream, GrowthPolicy, UpstreamAlloc>;
+        using arena_type = arena<Opt, GrowthPolicy, UpstreamAlloc>;
         using arena_type::arena_type;
         using allocation_result = typename arena_type::allocation_result;
 
@@ -40,7 +41,7 @@ namespace urlicht::memory {
          * @brief Returns a const reference to the underlying arena.
          */
         [[nodiscard]] constexpr const arena_type& get_arena() const noexcept {
-            return static_cast<arena_type&>(*this);
+            return static_cast<const arena_type&>(*this);
         }
 
         //************************* CORE METHODS ****************************//
@@ -55,13 +56,18 @@ namespace urlicht::memory {
             get_arena_mut_().reset();
         }
 
-        [[nodiscard]] UL_CONSTEXPR23 void* unchecked_allocate_initial(const size_t bytes,
-                                                                      const size_t align = default_align) noexcept {
+        /**
+         * @brief Perform an unconditional allocation from the initial buffer under the lock.
+         * @note UB if the initial buffer is null or undersized.
+         */
+        [[nodiscard]] UL_CONSTEXPR23 allocation_result unchecked_allocate(const size_t bytes,
+                                                                          const size_t align = default_align) noexcept {
             std::scoped_lock lock(mutex_);
-            return get_arena_mut_().unchecked_allocate_initial(bytes, align);
+            return get_arena_mut_().unchecked_allocate(bytes, align);
         }
 
-        [[nodiscard]] UL_CONSTEXPR23 auto allocate(const size_t bytes, const size_t align = default_align) {
+        [[nodiscard]] UL_CONSTEXPR23 allocation_result allocate(const size_t bytes,
+                                                                const size_t align = default_align) {
             std::scoped_lock lock(mutex_);
             return get_arena_mut_().allocate(bytes, align);
         }
@@ -81,4 +87,4 @@ namespace urlicht::memory {
     };
 }
 
-#endif //URLICHT_CONCURRENT_ARENA_H
+#endif //URLICHT_MEMORY_CONCURRENT_ARENA_H

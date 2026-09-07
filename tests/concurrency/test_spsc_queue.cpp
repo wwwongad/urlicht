@@ -1,6 +1,7 @@
 #include <urlicht/concurrency/spsc_queue.h>
 #include <gtest/gtest.h>
-#include <urlicht/memory/arena_view.h>
+#include <urlicht/memory/resource_view.h>
+#include <urlicht/memory/arena.h>
 #include <urlicht/memory/pmr/arena_resource.h>
 #include <barrier>
 #include <thread>
@@ -33,10 +34,10 @@ TEST(SPSCQueue, Initialization) {
 TEST(SPSCQueue, StatefulAllocator) {
     {
         urlicht::memory::arena<> arena{1 << 14};
-        const urlicht::memory::arena_view<int> alloc{arena};
-        spsc_queue<int, urlicht::memory::arena_view<int>> q{1024, alloc};
+        const urlicht::memory::resource_view<int> alloc{arena};
+        spsc_queue<int, urlicht::memory::resource_view<int>> q{1024, alloc};
 
-        static_assert(std::uses_allocator_v<decltype(q), urlicht::memory::arena_view<int>>);
+        static_assert(std::uses_allocator_v<decltype(q), urlicht::memory::resource_view<int>>);
         EXPECT_EQ(q.capacity(), 1024);
         const auto& buf = arena.get_initial_buffer();
         EXPECT_GE(buf.end() - buf.curr, 1024 * sizeof(int));

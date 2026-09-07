@@ -44,7 +44,7 @@ namespace urlicht::memory {
       *        PAGE_* constant; write implies read and write_execute implies read, since Windows
       *        has no write-only or execute-and-write-without-read protection mode.
       */
-    enum class protection : std::uint8_t {
+    enum class huge_page_protection : std::uint8_t {
         none               = 0U,
         read               = 1U << 0U,
         write              = 1U << 1U,
@@ -55,19 +55,21 @@ namespace urlicht::memory {
         read_write_execute = (1U << 0U) | (1U << 1U) | (1U << 2U)
     };
 
-    [[nodiscard]] constexpr protection operator|(const protection lhs, const protection rhs) noexcept {
-        return static_cast<protection>(static_cast<std::uint8_t>(lhs) | static_cast<std::uint8_t>(rhs));
+    [[nodiscard]] constexpr huge_page_protection operator|(const huge_page_protection lhs,
+                                                           const huge_page_protection rhs) noexcept {
+        return static_cast<huge_page_protection>(static_cast<std::uint8_t>(lhs) | static_cast<std::uint8_t>(rhs));
     }
 
-    constexpr protection& operator|=(protection& lhs, const protection rhs) noexcept {
+    constexpr huge_page_protection& operator|=(huge_page_protection& lhs, const huge_page_protection rhs) noexcept {
         return lhs = (lhs | rhs);
     }
 
-    [[nodiscard]] constexpr protection operator&(const protection lhs, const protection rhs) noexcept {
-        return static_cast<protection>(static_cast<std::uint8_t>(lhs) & static_cast<std::uint8_t>(rhs));
+    [[nodiscard]] constexpr huge_page_protection operator&(const huge_page_protection lhs,
+                                                           const huge_page_protection rhs) noexcept {
+        return static_cast<huge_page_protection>(static_cast<std::uint8_t>(lhs) & static_cast<std::uint8_t>(rhs));
     }
 
-    constexpr protection& operator&=(protection& lhs, const protection rhs) noexcept {
+    constexpr huge_page_protection& operator&=(huge_page_protection& lhs, const huge_page_protection rhs) noexcept {
         return lhs = (lhs & rhs);
     }
 
@@ -76,7 +78,7 @@ namespace urlicht::memory {
       *        Multiple flags can be combined using the OR operation. Options without a platform
       *        equivalent are silently ignored (see the per-flag notes).
       */
-    enum class allocation_options : std::uint8_t {
+    enum class huge_page_allocation_options : std::uint8_t {
         none     = 0U,
         // Pre-faults all pages at allocation time (MAP_POPULATE).
         // Note: On Windows, large pages are committed and resident regardless of this option.
@@ -87,21 +89,27 @@ namespace urlicht::memory {
         locked = 1U << 1U
     };
 
-    [[nodiscard]] constexpr allocation_options operator|(allocation_options lhs, allocation_options rhs) noexcept {
-        return static_cast<allocation_options>(static_cast<std::uint8_t>(lhs) | static_cast<std::uint8_t>(rhs));
+    [[nodiscard]] constexpr huge_page_allocation_options operator|(const huge_page_allocation_options lhs,
+                                                                   const huge_page_allocation_options rhs) noexcept {
+        return static_cast<huge_page_allocation_options>(
+            static_cast<std::uint8_t>(lhs) | static_cast<std::uint8_t>(rhs)
+        );
     }
 
-    constexpr allocation_options& operator|=(allocation_options& lhs,
-                                              const allocation_options rhs) noexcept {
+    constexpr huge_page_allocation_options& operator|=(huge_page_allocation_options& lhs,
+                                                       const huge_page_allocation_options rhs) noexcept {
         return lhs = (lhs | rhs);
     }
 
-    [[nodiscard]] constexpr allocation_options operator&(allocation_options lhs, allocation_options rhs) noexcept {
-        return static_cast<allocation_options>(static_cast<std::uint8_t>(lhs) & static_cast<std::uint8_t>(rhs));
+    [[nodiscard]] constexpr huge_page_allocation_options operator&(const huge_page_allocation_options lhs,
+                                                                   const huge_page_allocation_options rhs) noexcept {
+        return static_cast<huge_page_allocation_options>(
+            static_cast<std::uint8_t>(lhs) & static_cast<std::uint8_t>(rhs)
+        );
     }
 
-    constexpr allocation_options& operator&=(allocation_options& lhs,
-                                              const allocation_options rhs) noexcept {
+    constexpr huge_page_allocation_options& operator&=(huge_page_allocation_options& lhs,
+                                                       const huge_page_allocation_options rhs) noexcept {
         return lhs = (lhs & rhs);
     }
 
@@ -126,14 +134,14 @@ namespace urlicht::memory {
          * @param log_page_size The log2 of the page size in bytes. For example, for 2MB pages, log_page_size = 21.
          * @param page_count The number of pages to allocate. Defaults to 1.
          * @param prot The memory protection flags as a portable protection mask.
-         *        Defaults to protection::read_write.
-         * @param options Portable allocation options, OR-combinable. Defaults to allocation_options::populate.
-         *        Options without a platform equivalent are silently ignored (see allocation_options).
+         *        Defaults to huge_page_protection::read_write.
+         * @param options Portable allocation options, OR-combinable. Defaults to huge_page_allocation_options::populate.
+         *        Options without a platform equivalent are silently ignored (see huge_page_allocation_options).
          */
         huge_pages(const log_size_type log_page_size,
                    const size_type page_count = 1ULL,
-                   const protection prot = protection::read_write,
-                   const allocation_options options = allocation_options::populate)
+                   const huge_page_protection prot = huge_page_protection::read_write,
+                   const huge_page_allocation_options options = huge_page_allocation_options::populate)
         : page_size_{page_size_from_log_(log_page_size)},
           page_cnt_{page_count},
           total_size_{allocation_size_(page_size_, page_cnt_)} {
@@ -145,14 +153,14 @@ namespace urlicht::memory {
          * @param page_size A huge_page_size enum to indicate the size of the huge page.
          * @param page_count The number of pages to allocate. Defaults to 1.
          * @param prot The memory protection flags as a portable protection mask.
-         *        Defaults to protection::read_write.
-         * @param options Portable allocation options, OR-combinable. Defaults to allocation_options::populate.
-         *        Options without a platform equivalent are silently ignored (see allocation_options).
+         *        Defaults to huge_page_protection::read_write.
+         * @param options Portable allocation options, OR-combinable. Defaults to huge_page_allocation_options::populate.
+         *        Options without a platform equivalent are silently ignored (see huge_page_allocation_options).
          */
         huge_pages(const huge_page_size page_size,
                    const size_type page_count = 1ULL,
-                   const protection prot = protection::read_write,
-                   const allocation_options options = allocation_options::populate)
+                   const huge_page_protection prot = huge_page_protection::read_write,
+                   const huge_page_allocation_options options = huge_page_allocation_options::populate)
         : huge_pages(to_log_size_(page_size), page_count, prot, options)
         {   }
 
@@ -297,14 +305,14 @@ namespace urlicht::memory {
          * @param log_page_size The log2 of the page size in bytes. For example, for 2MB pages, log_page_size = 21.
          * @param page_count The number of pages to allocate. Defaults to 1.
          * @param prot The memory protection flags as a portable protection mask.
-         *        Defaults to protection::read_write.
-         * @param options Portable allocation options, OR-combinable. Defaults to allocation_options::populate.
-         *        Options without a platform equivalent are silently ignored (see allocation_options).
+         *        Defaults to huge_page_protection::read_write.
+         * @param options Portable allocation options, OR-combinable. Defaults to huge_page_allocation_options::populate.
+         *        Options without a platform equivalent are silently ignored (see huge_page_allocation_options).
          */
         void reset(const log_size_type log_page_size,
                    const size_type page_count = 1ULL,
-                   const protection prot = protection::read_write,
-                   const allocation_options options = allocation_options::populate) {
+                   const huge_page_protection prot = huge_page_protection::read_write,
+                   const huge_page_allocation_options options = huge_page_allocation_options::populate) {
             clear();
             page_size_ = page_size_from_log_(log_page_size);
             page_cnt_ = page_count;
@@ -317,14 +325,14 @@ namespace urlicht::memory {
          * @param page_size A huge_page_size enum to indicate the size of the huge page.
          * @param page_count The number of pages to allocate. Defaults to 1.
          * @param prot The memory protection flags as a portable protection mask.
-         *        Defaults to protection::read_write.
-         * @param options Portable allocation options, OR-combinable. Defaults to allocation_options::populate.
-         *        Options without a platform equivalent are silently ignored (see allocation_options).
+         *        Defaults to huge_page_protection::read_write.
+         * @param options Portable allocation options, OR-combinable. Defaults to huge_page_allocation_options::populate.
+         *        Options without a platform equivalent are silently ignored (see huge_page_allocation_options).
          */
         void reset(const huge_page_size page_size,
                    const size_type page_count = 1ULL,
-                   const protection prot = protection::read_write,
-                   const allocation_options options = allocation_options::populate) {
+                   const huge_page_protection prot = huge_page_protection::read_write,
+                   const huge_page_allocation_options options = huge_page_allocation_options::populate) {
             reset(to_log_size_(page_size), page_count, prot, options);
         }
 
@@ -435,37 +443,37 @@ namespace urlicht::memory {
         }
 
     private:
-        [[nodiscard]] static int native_protection_(const protection prot) noexcept {
+        [[nodiscard]] static int native_protection_(const huge_page_protection prot) noexcept {
             const std::uint8_t value = static_cast<std::uint8_t>(prot);
 #if (UL_PLATFORM_LINUX || UL_PLATFORM_MACOS)
             int native = PROT_NONE;
-            if ((value & static_cast<std::uint8_t>(protection::read)) != 0U) {
+            if ((value & static_cast<std::uint8_t>(huge_page_protection::read)) != 0U) {
                 native |= PROT_READ;
             }
-            if ((value & static_cast<std::uint8_t>(protection::write)) != 0U) {
+            if ((value & static_cast<std::uint8_t>(huge_page_protection::write)) != 0U) {
                 native |= PROT_WRITE;
             }
-            if ((value & static_cast<std::uint8_t>(protection::execute)) != 0U) {
+            if ((value & static_cast<std::uint8_t>(huge_page_protection::execute)) != 0U) {
                 native |= PROT_EXEC;
             }
             return native;
 #else // Windows
             switch (prot) {
-                case protection::none:
+                case huge_page_protection::none:
                     return PAGE_NOACCESS;
-                case protection::read:
+                case huge_page_protection::read:
                     return PAGE_READONLY;
-                case protection::write:
+                case huge_page_protection::write:
                     [[fallthrough]]
-                case protection::read_write:
+                case huge_page_protection::read_write:
                     return PAGE_READWRITE;
-                case protection::execute:
+                case huge_page_protection::execute:
                     return PAGE_EXECUTE;
-                case protection::read_execute:
+                case huge_page_protection::read_execute:
                     return PAGE_EXECUTE_READ;
-                case protection::write_execute:
+                case huge_page_protection::write_execute:
                     [[fallthrough]]
-                case protection::read_write_execute:
+                case huge_page_protection::read_write_execute:
                     return PAGE_EXECUTE_READWRITE;
                 default:
                     UL_UNREACHABLE();
@@ -473,14 +481,14 @@ namespace urlicht::memory {
 #endif
         }
 
-        [[nodiscard]] static int native_allocation_options_(const allocation_options options) noexcept {
+        [[nodiscard]] static int native_allocation_options_(const huge_page_allocation_options options) noexcept {
             const std::uint8_t value = static_cast<std::uint8_t>(options);
 #if UL_PLATFORM_LINUX
             int native = 0;
-            if ((value & static_cast<std::uint8_t>(allocation_options::populate)) != 0U) {
+            if ((value & static_cast<std::uint8_t>(huge_page_allocation_options::populate)) != 0U) {
                 native |= MAP_POPULATE;
             }
-            if ((value & static_cast<std::uint8_t>(allocation_options::locked)) != 0U) {
+            if ((value & static_cast<std::uint8_t>(huge_page_allocation_options::locked)) != 0U) {
                 native |= MAP_LOCKED;
             }
             return native;
@@ -558,7 +566,8 @@ namespace urlicht::memory {
 
         // page_size_, page_cnt_, and total_size_ should be set to their correct values before calling this method
         // All states are safely cleared if an exception is thrown
-        void do_allocate_(const protection prot, [[maybe_unused]] const allocation_options options) {
+        void do_allocate_(const huge_page_protection prot,
+                         [[maybe_unused]] const huge_page_allocation_options options) {
             if (total_size_ == 0U) [[unlikely]] { // No-op
                 return;
             }

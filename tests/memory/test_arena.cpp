@@ -4,7 +4,6 @@
 #include <limits>
 #include <cmath>
 #include <memory_resource>
-#include <cstdint>
 #include <vector>
 
 static bool is_aligned(void* p, const size_t align) {
@@ -12,7 +11,7 @@ static bool is_aligned(void* p, const size_t align) {
 }
 
 TEST(Arena, InitialBuffer) {
-    urlicht::memory::arena<false> arena(1048);
+    urlicht::memory::arena<{.use_upstream = false}> arena(1048);
 
     auto [p1, c1] = arena.allocate(16, 1);
     auto* ptr1 = static_cast<char*>(p1);
@@ -41,7 +40,7 @@ TEST(Arena, ExternalBuffer) {
     std::vector<char> buffer(1024);
     std::ranges::fill(buffer, 'x');
     {
-        urlicht::memory::arena<false> arena(buffer.data(), 1024u);
+        urlicht::memory::arena<{.use_upstream = false}> arena(buffer.data(), 1024u);
         auto [p, c] = arena.allocate(16, 1);
         auto* ptr = static_cast<char*>(p);
         EXPECT_NE(ptr, nullptr);
@@ -80,14 +79,14 @@ TEST(Arena, UncheckedAlloc) {
     urlicht::memory::arena arena(512);
     auto& init = arena.get_initial_buffer();
 
-    auto [p1, c1] = arena.unchecked_allocate_initial(12, 1);
+    auto [p1, c1] = arena.unchecked_allocate(12, 1);
     auto* ptr = static_cast<char*>(p1);
     EXPECT_NE(ptr, nullptr);
     EXPECT_GE(c1, 12u);
     EXPECT_TRUE(is_aligned(ptr, 1));
     EXPECT_EQ(init.end() - init.curr, 12);
 
-    auto [p2, c2] = arena.unchecked_allocate_initial(256, 8);
+    auto [p2, c2] = arena.unchecked_allocate(256, 8);
     ptr = static_cast<char*>(p2);
     EXPECT_NE(ptr, nullptr);
     EXPECT_GE(c2, 256u);
@@ -121,7 +120,7 @@ TEST(Arena, MoveOperations) {
 
 TEST(Arena, HeapChunkGrowth) {
     constexpr urlicht::memory::arena_growth_policy policy{2048, 1.5};
-    urlicht::memory::arena<true, policy> arena;
+    urlicht::memory::arena<{}, policy> arena;
 
     auto [p1, c1] = arena.allocate(1, 1);
     const char* ptr = static_cast<char*>(p1);
@@ -156,7 +155,7 @@ TEST(Arena, HeapChunkGrowth) {
 
 TEST(Arena, AllocationResultCount) {
     std::vector<std::byte> buffer(128);
-    urlicht::memory::arena<false> arena(buffer.data(), buffer.size());
+    urlicht::memory::arena<{.use_upstream = false}> arena(buffer.data(), buffer.size());
 
     const auto& init = arena.get_initial_buffer();
     auto* before_curr = init.curr;
@@ -177,9 +176,9 @@ TEST(Arena, ExtremeSizes) {
     constexpr size_t large_size = 281'474'976'710'656; // 2^48
     constexpr size_t max_size = std::numeric_limits<size_t>::max();
 
-    urlicht::memory::arena<false>::allocation_result res;
+    urlicht::memory::arena<{.use_upstream = false}>::allocation_result res;
 
-    urlicht::memory::arena<false> arena1(1024);
+    urlicht::memory::arena<{.use_upstream = false}> arena1(1024);
     EXPECT_NO_THROW(res = arena1.allocate(large_size));
     EXPECT_EQ(res.ptr, nullptr);
     EXPECT_EQ(res.count, 0U);

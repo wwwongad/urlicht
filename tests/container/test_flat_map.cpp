@@ -5,12 +5,13 @@
 #include <map>
 #include <random>
 #include <urlicht/container/inplace_vector.h>
-#include <urlicht/memory/arena_view.h>
+#include <urlicht/memory/arena.h>
+#include <urlicht/memory/resource_view.h>
 
 using namespace urlicht::container;
 
 template <typename T>
-using arena_vec = std::vector<T, urlicht::memory::arena_view<T>>;
+using arena_vec = std::vector<T, urlicht::memory::resource_view<T>>;
 
 template <typename Map>
 void MapEquals(const Map& map,
@@ -227,17 +228,17 @@ TEST(FlatMap, ConstructWithCustomCompAndLowerBound) {
 
 TEST(FlatMap, StatefulAllocator) {
     static_assert(std::uses_allocator_v<
-        flat_map<int, int, std::less<>, arena_vec<int>, arena_vec<int>>, urlicht::memory::arena_view<int>>);
+        flat_map<int, int, std::less<>, arena_vec<int>, arena_vec<int>>, urlicht::memory::resource_view<int>>);
     static_assert(std::uses_allocator_v<
-        flat_map<int, int, Compare, arena_vec<int>, arena_vec<int>, LinearLowerBound>, urlicht::memory::arena_view<int>>);
+        flat_map<int, int, Compare, arena_vec<int>, arena_vec<int>, LinearLowerBound>, urlicht::memory::resource_view<int>>);
 
     urlicht::memory::arena<> arena{1 << 12};
-    urlicht::memory::arena_view<int> alloc{arena};
+    urlicht::memory::resource_view<int> alloc{arena};
 
     flat_map<int, int, std::less<>, arena_vec<int>, arena_vec<int>> empty{alloc};
     EXPECT_TRUE(empty.empty());
-    EXPECT_EQ(empty.keys().get_allocator().get_arena(), arena);
-    EXPECT_EQ(empty.values().get_allocator().get_arena(), arena);
+    EXPECT_EQ(empty.keys().get_allocator().get_resource(), arena);
+    EXPECT_EQ(empty.values().get_allocator().get_resource(), arena);
 
     arena_vec<int> keys{alloc};
     arena_vec<int> values{alloc};
@@ -247,8 +248,8 @@ TEST(FlatMap, StatefulAllocator) {
     flat_map<int, int, std::less<>, arena_vec<int>, arena_vec<int>>
         from_cont{keys, values, std::less<>{}, urlicht::algorithm::lower_bound_fn{}, alloc};
     MapEquals(from_cont, {{1, 10}, {2, 20}, {3, 30}});
-    EXPECT_EQ(from_cont.keys().get_allocator().get_arena(), arena);
-    EXPECT_EQ(from_cont.values().get_allocator().get_arena(), arena);
+    EXPECT_EQ(from_cont.keys().get_allocator().get_resource(), arena);
+    EXPECT_EQ(from_cont.values().get_allocator().get_resource(), arena);
 
     flat_map<int, int, Compare, arena_vec<int>, arena_vec<int>, LinearLowerBound> from_range{
         std::array{std::pair{8, 80}, std::pair{9, 90}, std::pair{4, 40}, std::pair{13, 130}, std::pair{9, 99}},
@@ -259,8 +260,8 @@ TEST(FlatMap, StatefulAllocator) {
     MapEquals(from_range, {{8, 80}, {9, 90}, {4, 40}, {13, 130}});
     EXPECT_EQ(from_range.key_comp().get_key(), 7);
     EXPECT_EQ(from_range.lower_bound_fn().get_count(), -5);
-    EXPECT_EQ(from_range.keys().get_allocator().get_arena(), arena);
-    EXPECT_EQ(from_range.values().get_allocator().get_arena(), arena);
+    EXPECT_EQ(from_range.keys().get_allocator().get_resource(), arena);
+    EXPECT_EQ(from_range.values().get_allocator().get_resource(), arena);
 }
 
 TEST(FlatMap, CopyAndMoveAssignment) {

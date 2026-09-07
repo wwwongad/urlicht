@@ -1,5 +1,5 @@
 #include <urlicht/memory/arena.h>
-#include <urlicht/memory/arena_view.h>
+#include <urlicht/memory/resource_view.h>
 #include <urlicht/memory/concurrent_arena.h>
 #include <urlicht/memory/pmr/arena_resource.h>
 
@@ -34,14 +34,14 @@ struct batch_report {
     double average_temperature;
 };
 
-using request_arena = urlicht::memory::arena<false>;
+using request_arena = urlicht::memory::arena<{.use_upstream = false}>;
 using sample_allocator =
-    urlicht::memory::arena_view<telemetry_sample, false, request_arena>;
+    urlicht::memory::resource_view<telemetry_sample, request_arena>;
 using summary_value = std::pair<const int, sensor_summary>;
 using summary_allocator =
-    urlicht::memory::arena_view<summary_value, false, request_arena>;
+    urlicht::memory::resource_view<summary_value, request_arena>;
 using report_allocator =
-    urlicht::memory::arena_view<batch_report, false, request_arena>;
+    urlicht::memory::resource_view<batch_report, request_arena>;
 
 int main() {
     const std::array incoming{
@@ -156,7 +156,7 @@ int main() {
 
     using shared_arena = urlicht::memory::concurrent_arena<>;
     using worker_allocator =
-        urlicht::memory::arena_view<int, false, shared_arena>;
+        urlicht::memory::resource_view<int, shared_arena>;
 
     shared_arena shared_memory(4 * 1024);
     constexpr std::array west_readings{9, 3, 7, 5, 4};

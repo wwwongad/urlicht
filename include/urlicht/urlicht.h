@@ -23,7 +23,7 @@
 #include <urlicht/functional/flexible_move_only_function.h>
 
 #include <urlicht/memory/arena.h>
-#include <urlicht/memory/arena_view.h>
+#include <urlicht/memory/resource_view.h>
 #include <urlicht/memory/concurrent_arena.h>
 #include <urlicht/memory/pmr/arena_resource.h>
 #include <urlicht/memory/huge_pages.h>

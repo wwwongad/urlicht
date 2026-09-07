@@ -15,7 +15,7 @@ namespace urlicht::container {
     *         position map, free id pool, and generation map (if applicable).
     *         It must accept a single type parameter corresponding to the heap value type.
     *         - Note: You can create a template alias to configure template parameters other than the first one,
-    *         e.g. template <typename T> using heap_vec = std::vector<T, urlicht::memory::arena_view<T>>.
+    *         e.g. template <typename T> using heap_vec = std::vector<T, urlicht::memory::resource_view<T>>.
     *
     * @tparam Comp Comparison functor used to order elements. Defaults to std::less<>, yielding a max heap.
     * @tparam HeapPolicy A policy object of type d_ary_heap_policy that defines several aspects of the heap:

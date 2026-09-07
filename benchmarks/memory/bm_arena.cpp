@@ -4,7 +4,8 @@
 #include <map>
 #include <string>
 #include <memory_resource>
-#include <urlicht/memory/arena_view.h>
+#include <urlicht/memory/arena.h>
+#include <urlicht/memory/resource_view.h>
 
 constexpr size_t KB = 1024;
 constexpr size_t MB = 1024 * 1024;
@@ -21,7 +22,7 @@ public:
 
     void* allocate(size_t bytes, size_t alignment) noexcept(Unsafe) {
         if constexpr (Unsafe) {
-            return arena.unchecked_allocate_initial(bytes, alignment).ptr;
+            return arena.unchecked_allocate(bytes, alignment).ptr;
         } else {
             return arena.allocate(bytes, alignment).ptr;
         }
@@ -92,8 +93,8 @@ BENCHMARK_TEMPLATE(BM_Arena_HotPath, STDMonotonicWrapper)->Arg(8)->Arg(32)
 template <bool Unsafe = false>
 static void BM_UrlichtArena_FrameLoop(benchmark::State& state) {
     const size_t vec_size = state.range(0);
-    urlicht::memory::arena<false> arena(16 * KB);
-    using view_type = urlicht::memory::arena_view<int, Unsafe, decltype(arena)>;
+    urlicht::memory::arena<urlicht::memory::resource_options{.use_upstream = false}> arena(16 * KB);
+    using view_type = urlicht::memory::resource_view<int, decltype(arena), urlicht::memory::allocator_options{.unchecked_allocate = Unsafe}>;
 
     for (auto _ : state) {
         std::vector<int, view_type> vec(arena);
@@ -256,11 +257,11 @@ struct CacheLocality_PMR_Monotonic {
 };
 
 struct CacheLocality_UrlichtArena {
-    using ArenaType = urlicht::memory::arena<true, {2 * MB, 2}>;
+    using ArenaType = urlicht::memory::arena<urlicht::memory::resource_options{}, {2 * MB, 2}>;
 
     ArenaType arena;
     // Note: arena must be initialized before list
-    std::list<std::string, urlicht::memory::arena_view<std::string, false, ArenaType>> list;
+    std::list<std::string, urlicht::memory::resource_view<std::string, ArenaType>> list;
 
     CacheLocality_UrlichtArena(size_t count)
         : arena{}, list(arena) {

@@ -1,6 +1,7 @@
-#ifndef URLICHT_ARENA_FWD_H
-#define URLICHT_ARENA_FWD_H
+#ifndef URLICHT_MEMORY_DETAIL_ARENA_FWD_H
+#define URLICHT_MEMORY_DETAIL_ARENA_FWD_H
 #include <memory>
+#include <urlicht/memory/allocation_options.h>
 #include <urlicht/concepts/concepts.h>
 #include <urlicht/internal/config.h>
 #include <cstddef>
@@ -47,8 +48,8 @@ namespace urlicht::memory {
             Pointer ptr;
             SizeType count;
         };
-    }
 #endif
+    } // namespace detail
 
     struct arena_growth_policy {
         size_t initial_size = 1024;
@@ -57,101 +58,46 @@ namespace urlicht::memory {
 
     /************************ URLICHT ARENA **************************/
 
-    template <bool UseUpstream = true,
+    template <resource_options Opt = resource_options{},
               arena_growth_policy GrowthPolicy = arena_growth_policy{},
               urlicht::concepts::allocator UpstreamAlloc = std::allocator<std::byte>>
     class arena;
 
     namespace detail {
-        template <typename T>
+        template <typename>
         struct is_arena : std::false_type {};
 
-        template <bool U, arena_growth_policy P, typename A>
-        struct is_arena<arena<U, P, A>> : std::true_type {};
+        template <resource_options Opt, arena_growth_policy GP, typename Up>
+        struct is_arena<arena<Opt, GP, Up>> : std::true_type {};
     }
-
-}
-
-namespace urlicht {
-    template <typename T>
-    inline constexpr bool is_urlicht_arena_v = memory::detail::is_arena<T>::value;
-}
-
-namespace urlicht::memory {
 
     /************************ URLICHT CONCURRENT ARENA **************************/
 
-    template <bool UseUpstream = true,
+    template <resource_options Opt = resource_options{},
               arena_growth_policy GrowthPolicy = arena_growth_policy{},
               urlicht::concepts::allocator UpstreamAlloc = std::allocator<std::byte>>
     class concurrent_arena;
 
     namespace detail {
-        template <typename T>
+        template <typename>
         struct is_concurrent_arena : std::false_type {};
 
-        template <bool U, arena_growth_policy P, urlicht::concepts::allocator A>
-        struct is_concurrent_arena<concurrent_arena<U, P, A>> : std::true_type {};
+        template <resource_options Opt, arena_growth_policy GP, typename Up>
+        struct is_concurrent_arena<concurrent_arena<Opt, GP, Up>> : std::true_type {};
     }
 
-}
+    /************************ URLICHT RESOURCE VIEW **************************/
 
-namespace urlicht {
-    template <typename T>
-    inline constexpr bool is_urlicht_concurrent_arena_v =
-        memory::detail::is_concurrent_arena<T>::value;
-}
-
-namespace urlicht::memory {
-
-    /************************ URLICHT ARENA VIEW **************************/
-
-    template <urlicht::concepts::object T, bool UnsafeAllocInit = false, typename Arena = arena<>>
-    class arena_view;
-
-}
-
-namespace urlicht {
-    template <typename A>
-    inline constexpr bool is_urlicht_arena_view_compatible_v =
-        is_urlicht_arena_v<A> || is_urlicht_concurrent_arena_v<A>;
-}
-
-namespace urlicht::memory {
+    template <urlicht::concepts::object T, typename Resource = arena<>, allocator_options Opt = allocator_options{}>
+    class resource_view;
 
     namespace detail {
-        template <typename T>
-        struct is_arena_view : std::false_type {};
+        template <typename>
+        struct is_resource_view : std::false_type {};
 
-        template <typename T, bool I, typename A>
-        struct is_arena_view<arena_view<T, I, A>> : std::true_type {};
-
-        template <typename T>
-        struct no_upstream_arena_impl {};
-
-        template <bool U, arena_growth_policy P, typename A>
-        struct no_upstream_arena_impl<arena<U, P, A>> {
-            using type = arena<false, P, A>;
-        };
-
-        template <bool U, arena_growth_policy P, typename A>
-        struct no_upstream_arena_impl<concurrent_arena<U, P, A>> {
-            using type = concurrent_arena<false, P, A>;
-        };
-
-        template <typename Arena, bool UnsafeAllocInit>
-        using zero_overhead_arena =
-            std::conditional_t<UnsafeAllocInit, typename no_upstream_arena_impl<Arena>::type, Arena>;
+        template <typename T, typename Resource, allocator_options Opt>
+        struct is_resource_view<resource_view<T, Resource, Opt>> : std::true_type {};
     }
-
-}
-
-namespace urlicht {
-    template <typename T>
-    inline constexpr bool is_urlicht_arena_view_v = memory::detail::is_arena_view<T>::value;
-}
-
-namespace urlicht::memory {
 
     /************************ URLICHT PMR ARENA RESOURCE **************************/
 
@@ -159,26 +105,41 @@ namespace urlicht::memory {
         /**
          * @brief Owning wrapper class for urlicht::memory::arena that conforms to the std::pmr::memory_resource interface.
          * @tparam Arena The underlying urlicht::memory::arena for raw memory allocation. Defaults to
-         *               urlicht::memory::arena<true, std::allocator<std::byte>, ArenaGrowthPolicy{}>.
+         *               urlicht::memory::arena<resource_options{}, std::allocator<std::byte>, ArenaGrowthPolicy{}>.
          */
-        template <typename Arena = arena<>, bool UnsafeAllocInit = false>
+        template <typename Arena = arena<>, allocator_options Opt = allocator_options{}>
         class arena_resource;
     }
 
     namespace detail {
-        template <typename T>
+        template <typename>
         struct is_arena_resource : std::false_type {};
 
-        template <typename A, bool U>
-        struct is_arena_resource<pmr::arena_resource<A, U>> : std::true_type {};
+        template <typename Arena, allocator_options Opt>
+        struct is_arena_resource<pmr::arena_resource<Arena, Opt>> : std::true_type {};
     }
 
 }
 
 namespace urlicht {
     template <typename T>
-    inline constexpr bool is_urlicht_pmr_arena_resource_v =
-        memory::detail::is_arena_resource<T>::value;
+    inline constexpr bool is_urlicht_arena_v = memory::detail::is_arena<T>::value;
+
+    template <typename T>
+    inline constexpr bool is_urlicht_concurrent_arena_v = memory::detail::is_concurrent_arena<T>::value;
+
+    template <typename T>
+    inline constexpr bool is_urlicht_resource_view_v = memory::detail::is_resource_view<T>::value;
+
+    template <typename T>
+    inline constexpr bool is_urlicht_pmr_arena_resource_v = memory::detail::is_arena_resource<T>::value;
 }
 
-#endif //URLICHT_ARENA_FWD_H
+namespace urlicht::memory::detail {
+    // Defines whether a memory resource class is compatible with resource_view
+    template <typename T>
+    inline constexpr bool is_urlicht_memory_resource_v =
+        urlicht::is_urlicht_arena_v<T> || urlicht::is_urlicht_concurrent_arena_v<T>;
+}
+
+#endif //URLICHT_MEMORY_DETAIL_ARENA_FWD_H
