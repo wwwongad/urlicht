@@ -168,7 +168,7 @@ static void BM_UrlichtArena_NodeBurst(benchmark::State& state) {
     const size_t num_nodes = state.range(0);
     // ~1/2 of required memory
     urlicht::memory::arena<> arena(num_nodes * 20);
-    using view_type = urlicht::memory::arena_view<std::pair<const int, int>>;
+    using view_type = urlicht::memory::resource_view<std::pair<const int, int>>;
 
     for (auto _ : state) {
         std::map<int, int, std::less<>, view_type> map(arena);
