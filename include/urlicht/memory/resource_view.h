@@ -1,7 +1,7 @@
 #ifndef URLICHT_RESOURCE_VIEW_H
 #define URLICHT_RESOURCE_VIEW_H
 
-#include <urlicht/memory/detail/arena_fwd.h>
+#include <urlicht/memory/detail/resources_fwd.h>
 #include <urlicht/memory/detail/resource_traits.h>
 #include <urlicht/internal/config.h>
 #include <cstddef>
@@ -19,7 +19,7 @@ namespace urlicht::memory {
      *        The resource is accepted structurally: any type exposing the allocation entry points used
      *        below (a checked `allocate(bytes, align)` returning an allocation_result, and when
      *        `Opt.unchecked_allocate == true` an `unchecked_allocate(bytes, align)`) can back the view.
-     *        When the resource's deallocate is a static no-op (see detail::has_noop_deallocate),
+     *        When the resource opts into a static no-op deallocate (see detail::has_noop_deallocate),
      *        deallocation through the view is elided entirely.
      *
      * @tparam T The type to be allocated.
@@ -30,6 +30,7 @@ namespace urlicht::memory {
      */
     template <urlicht::concepts::object T, typename Resource, allocator_options Opt>
     class resource_view {
+        static_assert(detail::memory_resource<Resource>, "Resource must be a valid memory resource type.");
         static_assert(!Opt.unchecked_allocate || detail::has_unchecked_allocate<Resource>,
             "Opt.unchecked_allocate == true requires the resource to expose an unchecked_allocate fast path");
     public:
@@ -54,14 +55,14 @@ namespace urlicht::memory {
         /**
          * @brief Returns the allocator_options template parameter.
          */
-        static consteval allocator_options options() noexcept {
+        [[nodiscard]] static consteval allocator_options options() noexcept {
             return Opt;
         }
 
         /**
          * @brief Returns the Opt.unchecked_allocate template parameter.
          */
-        static consteval bool unchecked_allocate() noexcept {
+        [[nodiscard]] static consteval bool unchecked_allocate() noexcept {
             return Opt.unchecked_allocate;
         }
 
@@ -72,8 +73,7 @@ namespace urlicht::memory {
          * @param resource A memory resource instance from which resource_view will allocate memory subsequently.
          */
         constexpr resource_view(resource_type& resource) noexcept
-            : ptr_resource_(&resource) {
-        }
+        : ptr_resource_(&resource) { }
 
         constexpr resource_view(const resource_view&) noexcept = default;
         constexpr resource_view(resource_view&&) noexcept = default;
@@ -117,17 +117,15 @@ namespace urlicht::memory {
             return this->allocate_at_least(n).ptr;
         }
 
-        // When the resource's deallocate is a static no-op (e.g. arena/concurrent_arena), per-object
-        // deallocation is elided entirely: memory is reclaimed only via the resource's reset()/release().
-        static constexpr void deallocate([[maybe_unused]] const value_type* p,
-                                         [[maybe_unused]] const size_type n) noexcept
-        requires (detail::has_noop_deallocate<resource_type>) { }
+        // When the resource's deallocate is a static no-op (e.g. arena/concurrent_arena),
+        // deallocation is elided entirely.
+        static constexpr void deallocate(value_type*, size_type) noexcept
+        requires (detail::has_noop_deallocate<resource_type>::value) { }
 
         // Otherwise the deallocation is forwarded to the underlying resource (byte size and alignment).
-        constexpr void deallocate(const value_type* p, const size_type n) noexcept
-            requires (!detail::has_noop_deallocate<resource_type>) {
-            ptr_resource_->deallocate(
-                const_cast<value_type*>(p), n * sizeof(value_type), alignof(value_type));
+        constexpr void deallocate(value_type* p, const size_type n) noexcept
+        requires (!detail::has_noop_deallocate<resource_type>::value) {
+            ptr_resource_->deallocate(p, n * sizeof(value_type), alignof(value_type));
         }
 
         [[nodiscard]] constexpr void* allocate_bytes(const size_type nbytes,
@@ -145,17 +143,15 @@ namespace urlicht::memory {
         }
 
         // Static no-op raw-byte deallocation for resources whose deallocate is a static no-op.
-        static constexpr void deallocate_bytes([[maybe_unused]] const void* p,
-                                               [[maybe_unused]] const size_type nbytes,
-                                               [[maybe_unused]] const size_type align = alignof(std::max_align_t)) noexcept
-            requires (detail::has_noop_deallocate<resource_type>) { }
+        static constexpr void deallocate_bytes(void*, const size_type,
+                                               [[maybe_unused]] const size_type align = alignof(std::max_align_t))
+        noexcept requires (detail::has_noop_deallocate<resource_type>::value) { }
 
         // Raw-byte deallocation forwarded to the underlying resource.
-        constexpr void deallocate_bytes(const void* p,
-                                        const size_type nbytes,
+        constexpr void deallocate_bytes(void* p, const size_type nbytes,
                                         const size_type align = alignof(std::max_align_t)) noexcept
-        requires (!detail::has_noop_deallocate<resource_type>) {
-            ptr_resource_->deallocate(const_cast<void*>(p), nbytes, align);
+        requires (!detail::has_noop_deallocate<resource_type>::value) {
+            ptr_resource_->deallocate(p, nbytes, align);
         }
 
         /**

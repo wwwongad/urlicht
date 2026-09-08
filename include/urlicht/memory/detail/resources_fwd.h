@@ -1,7 +1,8 @@
-#ifndef URLICHT_MEMORY_DETAIL_ARENA_FWD_H
-#define URLICHT_MEMORY_DETAIL_ARENA_FWD_H
+#ifndef URLICHT_MEMORY_DETAIL_RESOURCES_FWD_H
+#define URLICHT_MEMORY_DETAIL_RESOURCES_FWD_H
 #include <memory>
 #include <urlicht/memory/allocation_options.h>
+#include <urlicht/memory/detail/resource_traits.h>
 #include <urlicht/concepts/concepts.h>
 #include <urlicht/internal/config.h>
 #include <cstddef>
@@ -69,6 +70,9 @@ namespace urlicht::memory {
 
         template <resource_options Opt, arena_growth_policy GP, typename Up>
         struct is_arena<arena<Opt, GP, Up>> : std::true_type {};
+
+        template <resource_options Opt, arena_growth_policy GP, typename Up>
+        struct has_noop_deallocate<arena<Opt, GP, Up>> : std::true_type {};
     }
 
     /************************ URLICHT CONCURRENT ARENA **************************/
@@ -84,6 +88,9 @@ namespace urlicht::memory {
 
         template <resource_options Opt, arena_growth_policy GP, typename Up>
         struct is_concurrent_arena<concurrent_arena<Opt, GP, Up>> : std::true_type {};
+
+        template <resource_options Opt, arena_growth_policy GP, typename Up>
+        struct has_noop_deallocate<concurrent_arena<Opt, GP, Up>> : std::true_type {};
     }
 
     /************************ URLICHT RESOURCE VIEW **************************/
@@ -135,11 +142,4 @@ namespace urlicht {
     inline constexpr bool is_urlicht_pmr_arena_resource_v = memory::detail::is_arena_resource<T>::value;
 }
 
-namespace urlicht::memory::detail {
-    // Defines whether a memory resource class is compatible with resource_view
-    template <typename T>
-    inline constexpr bool is_urlicht_memory_resource_v =
-        urlicht::is_urlicht_arena_v<T> || urlicht::is_urlicht_concurrent_arena_v<T>;
-}
-
-#endif //URLICHT_MEMORY_DETAIL_ARENA_FWD_H
+#endif //URLICHT_MEMORY_DETAIL_RESOURCES_FWD_H

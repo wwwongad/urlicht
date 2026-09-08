@@ -1,7 +1,7 @@
 #ifndef URLICHT_MEMORY_CONCURRENT_ARENA_H
 #define URLICHT_MEMORY_CONCURRENT_ARENA_H
 
-#include <urlicht/memory/detail/arena_fwd.h>
+#include <urlicht/memory/detail/resources_fwd.h>
 #include <urlicht/memory/arena.h>
 #include <urlicht/memory/allocation_options.h>
 #include <mutex>
@@ -22,13 +22,14 @@ namespace urlicht::memory {
             "Upstream allocator must allocate std::byte");
 
     public:
+        using size_type = std::size_t;
         using upstream_allocator = UpstreamAlloc;
         using upstream_traits = std::allocator_traits<upstream_allocator>;
         using arena_type = arena<Opt, GrowthPolicy, UpstreamAlloc>;
         using arena_type::arena_type;
         using allocation_result = typename arena_type::allocation_result;
 
-        static constexpr std::size_t default_align = alignof(std::max_align_t);
+        static constexpr size_type default_align = alignof(std::max_align_t);
 
         concurrent_arena(const concurrent_arena&) = delete;
         concurrent_arena& operator=(const concurrent_arena&) = delete;
@@ -60,19 +61,19 @@ namespace urlicht::memory {
          * @brief Perform an unconditional allocation from the initial buffer under the lock.
          * @note UB if the initial buffer is null or undersized.
          */
-        [[nodiscard]] UL_CONSTEXPR23 allocation_result unchecked_allocate(const size_t bytes,
-                                                                          const size_t align = default_align) noexcept {
+        [[nodiscard]] UL_CONSTEXPR23 allocation_result unchecked_allocate(const size_type bytes,
+                                                                          const size_type align = default_align) noexcept {
             std::scoped_lock lock(mutex_);
             return get_arena_mut_().unchecked_allocate(bytes, align);
         }
 
-        [[nodiscard]] UL_CONSTEXPR23 allocation_result allocate(const size_t bytes,
-                                                                const size_t align = default_align) {
+        [[nodiscard]] UL_CONSTEXPR23 allocation_result allocate(const size_type bytes,
+                                                                const size_type align = default_align) {
             std::scoped_lock lock(mutex_);
             return get_arena_mut_().allocate(bytes, align);
         }
 
-        static constexpr void deallocate(void*, size_t, [[maybe_unused]] size_t align = default_align) noexcept
+        static constexpr void deallocate(void*, size_type, [[maybe_unused]] size_type align = default_align) noexcept
         { }
 
         friend constexpr bool operator==(const concurrent_arena& lhs, const concurrent_arena& rhs) noexcept {

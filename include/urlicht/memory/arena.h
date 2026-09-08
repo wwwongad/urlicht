@@ -3,7 +3,7 @@
 
 #include <urlicht/internal/config.h>
 #include <urlicht/concepts/concepts.h>
-#include <urlicht/memory/detail/arena_fwd.h>
+#include <urlicht/memory/detail/resources_fwd.h>
 #include <memory>
 #include <cstdint>
 #include <cstddef>
@@ -43,14 +43,15 @@ namespace urlicht::memory {
         static_assert(std::same_as<typename UpstreamAlloc::value_type, std::byte>,
             "Upstream allocator must allocate std::byte");
     public:
+        using size_type = std::size_t;
         using allocation_result = detail::allocation_result_impl<void*>;
         using upstream_allocator = UpstreamAlloc;
         using upstream_traits = std::allocator_traits<upstream_allocator>;
     private:
         // Growth policy
-        static constexpr size_t initial_chunk_size_ = GrowthPolicy.initial_size;
+        static constexpr size_type initial_chunk_size_ = GrowthPolicy.initial_size;
         static constexpr double chunk_growth_rate_ = GrowthPolicy.growth_rate;
-        static constexpr size_t default_align = alignof(std::max_align_t);
+        static constexpr size_type default_align = alignof(std::max_align_t);
 
         // Data members
         detail::initial_buffer initial_buffer_;
@@ -64,7 +65,7 @@ namespace urlicht::memory {
         // Helper methods
         template <bool IsInitial, typename Chunk>
         [[nodiscard]]
-        static constexpr allocation_result try_alloc_(Chunk& chunk, const size_t bytes, const size_t align) noexcept {
+        static constexpr allocation_result try_alloc_(Chunk& chunk, const size_type bytes, const size_type align) noexcept {
             if constexpr (IsInitial) {
                 if (chunk.start == nullptr) [[unlikely]] {
                     return {nullptr, 0U};
@@ -80,16 +81,16 @@ namespace urlicht::memory {
             if (new_curr < chunk.start) [[unlikely]] {
                 return {nullptr, 0U};
             }
-            const size_t size = chunk.curr - new_curr;
+            const size_type size = chunk.curr - new_curr;
             return {chunk.curr = new_curr, size};
         }
 
         template <typename Chunk>
         static constexpr allocation_result
-        unchecked_alloc_(Chunk& chunk, const size_t bytes, const size_t align) noexcept {
+        unchecked_alloc_(Chunk& chunk, const size_type bytes, const size_type align) noexcept {
             auto* new_curr =
                 reinterpret_cast<std::byte*>(reinterpret_cast<uintptr_t>(chunk.curr - bytes) & ~(align - 1));
-            const size_t size = chunk.curr - new_curr;
+            const size_type size = chunk.curr - new_curr;
             return {chunk.curr = new_curr, size};
         }
 
@@ -123,7 +124,7 @@ namespace urlicht::memory {
          *        upstream_allocator.
          * @param buffer_size Number of bytes of the initial buffer.
          */
-        constexpr explicit arena(size_t buffer_size)
+        constexpr explicit arena(size_type buffer_size)
             : arena(nullptr, buffer_size, upstream_allocator{}) {}
 
         /**
@@ -131,7 +132,7 @@ namespace urlicht::memory {
          * @param buffer Pointer to the provided buffer.
          * @param buffer_size Number of bytes of the external buffer.
          */
-        constexpr arena(void* buffer, size_t buffer_size)
+        constexpr arena(void* buffer, size_type buffer_size)
             : arena(buffer, buffer_size, upstream_allocator{}) {}
 
         /**
@@ -148,7 +149,7 @@ namespace urlicht::memory {
          * @param buffer_size Number of bytes of the initial buffer.
          * @param upstream Provided allocator instance for subsequent internal allocations.
          */
-        constexpr arena(size_t buffer_size, upstream_allocator upstream)
+        constexpr arena(size_type buffer_size, upstream_allocator upstream)
             : arena(nullptr, buffer_size, std::move(upstream)) {}
 
         /**
@@ -157,7 +158,7 @@ namespace urlicht::memory {
          * @param buffer_size number of bytes of the initial buffer.
          * @param upstream Provided allocator instance for subsequent internal allocations.
          */
-        constexpr arena(void* buffer, const size_t buffer_size, upstream_allocator upstream)
+        constexpr arena(void* buffer, const size_type buffer_size, upstream_allocator upstream)
         : upstream_{std::move(upstream)} {
             if (buffer == nullptr) {
                 if (buffer_size != 0U) [[likely]] {
@@ -298,8 +299,8 @@ namespace urlicht::memory {
          * @note UB if initial_buffer_.start == nullptr or the buffer is undersized.
          */
         [[nodiscard]]
-        constexpr allocation_result unchecked_allocate(const size_t bytes,
-                                                       const size_t align = default_align) noexcept {
+        constexpr allocation_result unchecked_allocate(const size_type bytes,
+                                                       const size_type align = default_align) noexcept {
             UL_ASSERT(initial_buffer_.start != nullptr, "Initial buffer is null");
             UL_ASSERT(align != 0U && (align & (align - 1)) == 0, "align must be non-zero power of two.");
             UL_ASSUME(align != 0U && (align & (align - 1)) == 0);
@@ -316,7 +317,7 @@ namespace urlicht::memory {
          * @param align Alignment requirement. Defaults to alignof(std::max_align_t).
          * @return void pointer to the allocated memory on success, nullptr on failure.
          */
-        [[nodiscard]] constexpr allocation_result allocate(size_t bytes, const size_t align = default_align)
+        [[nodiscard]] constexpr allocation_result allocate(size_type bytes, const size_type align = default_align)
         noexcept(!Opt.use_upstream) {
             UL_ASSERT(align != 0U && (align & (align - 1)) == 0, "align must be non-zero power of two.");
             UL_ASSUME(align != 0U && (align & (align - 1)) == 0);
@@ -337,13 +338,13 @@ namespace urlicht::memory {
 
                 auto get_next_default_size = [&] {
                     return chunk_footer_ ?
-                        static_cast<size_t>(chunk_footer_->actual_buffer_size() * chunk_growth_rate_) :
+                        static_cast<size_type>(chunk_footer_->actual_buffer_size() * chunk_growth_rate_) :
                         initial_chunk_size_;
                 };
 
                 // Overflow prevention
-                auto bad_size_ = [&](const size_t size__) {
-                    return size__ > std::numeric_limits<size_t>::max()
+                auto bad_size_ = [&](const size_type size__) {
+                    return size__ > std::numeric_limits<size_type>::max()
                                     - align
                                     - footer_size
                                     - footer_align + 2;
@@ -352,9 +353,9 @@ namespace urlicht::memory {
                 if (bad_size_(bytes)) [[unlikely]] {
                     throw std::bad_array_new_length{};
                 }
-                const size_t logical_next_size =
+                const size_type logical_next_size =
                     std::max(bytes + align - 1, get_next_default_size()) + footer_size;
-                const size_t raw_alloc_size = logical_next_size + (footer_align - 1);
+                const size_type raw_alloc_size = logical_next_size + (footer_align - 1);
 
                 auto* raw_start = static_cast<std::byte*>(upstream_traits::allocate(upstream_, raw_alloc_size));
                 auto* raw_end = raw_start + raw_alloc_size;
@@ -378,7 +379,7 @@ namespace urlicht::memory {
         /**
          * @brief No-op de-allocation callback, for API compatibility only.
          */
-        static constexpr void deallocate(void*, size_t, [[maybe_unused]] size_t align = default_align) noexcept { }
+        static constexpr void deallocate(void*, size_type, [[maybe_unused]] size_type align = default_align) noexcept { }
 
         friend constexpr bool operator==(const arena& lhs, const arena& rhs) noexcept {
             return std::addressof(lhs) == std::addressof(rhs);

@@ -3,7 +3,7 @@
 
 #include <urlicht/internal/config.h>
 #include <urlicht/internal/error.h>
-#include <urlicht/memory/detail/arena_fwd.h> // For allocation_result
+#include <urlicht/memory/detail/resources_fwd.h> // For allocation_result
 #include <cinttypes>
 #include <limits>
 #include <bit>

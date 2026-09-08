@@ -1,14 +1,11 @@
 #ifndef URLICHT_MEMORY_PMR_ARENA_RESOURCE_H
 #define URLICHT_MEMORY_PMR_ARENA_RESOURCE_H
 
-#include <urlicht/memory/detail/arena_fwd.h>
+#include <urlicht/memory/detail/resources_fwd.h>
 #include <urlicht/memory/detail/resource_traits.h>
-#include <urlicht/memory/arena.h>
-#include <urlicht/memory/concurrent_arena.h>
+#include <urlicht/memory/arena.h> // arena_resource is expected to be self-contained
 #include <memory_resource>
-#include <concepts>
 #include <type_traits>
-#include <cstddef>
 
 namespace urlicht::memory::pmr {
 
@@ -30,8 +27,8 @@ namespace urlicht::memory::pmr {
     template <typename Arena, allocator_options Opt>
     class arena_resource final : public std::pmr::memory_resource,
                                  private Arena {
-        static_assert(detail::has_noop_deallocate<Arena>,
-            "Arena must expose a static no-op deallocate");
+        static_assert(detail::has_noop_deallocate<Arena>::value,
+            "Arena must opt into a static no-op deallocate (specialize detail::has_noop_deallocate)");
         static_assert(!Opt.unchecked_allocate || detail::has_unchecked_allocate<Arena>,
             "Opt.unchecked_allocate == true requires the arena to expose an unchecked_allocate fast path");
     public:
