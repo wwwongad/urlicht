@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <urlicht/memory/detail/resource_traits.h>
 #include <urlicht/memory/arena.h>
 #include <algorithm>
 #include <limits>
@@ -9,6 +10,8 @@
 static bool is_aligned(void* p, const size_t align) {
     return reinterpret_cast<std::uintptr_t>(p) % align == 0;
 }
+
+static_assert(urlicht::memory::detail::memory_resource<urlicht::memory::arena<>>);
 
 TEST(Arena, InitialBuffer) {
     urlicht::memory::arena<{.use_upstream = false}> arena(1048);

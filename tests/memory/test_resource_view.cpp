@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include <urlicht/memory/arena.h>
 #include <urlicht/memory/resource_view.h>
+#include <urlicht/concepts/concepts.h>
 #include <algorithm>
 #include <deque>
 #include <limits>
@@ -13,6 +14,8 @@
 static bool is_aligned(void* p, const size_t align) {
     return reinterpret_cast<std::uintptr_t>(p) % align == 0;
 }
+
+static_assert(urlicht::concepts::allocator<urlicht::memory::resource_view<int>>);
 
 TEST(ResourceView, BasicAllocation) {
 
