@@ -184,7 +184,7 @@ TEST(HugePages, Release) {
     const auto ptr2 = hp2.get();
     const auto total2 = hp2.size();
     const auto info = hp2.release_info();
-    EXPECT_NE(info.ptr, ptr2);
+    EXPECT_EQ(info.ptr, ptr2);
     EXPECT_EQ(info.count, total2);
     EXPECT_TRUE(hp2.empty());
     free_released(info.ptr, info.count);
