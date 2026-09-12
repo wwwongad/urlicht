@@ -1,10 +1,8 @@
 #ifndef URLICHT_CONCURRENCY_STATIC_SHARDED_COUNTER_H
 #define URLICHT_CONCURRENCY_STATIC_SHARDED_COUNTER_H
-
 #include <urlicht/internal/config.h>
 #include <urlicht/concurrency/detail/utils_.h>
-#include <bit>
-#include <thread>
+#include <atomic>
 #include <concepts>
 #include <array>
 #include <functional>

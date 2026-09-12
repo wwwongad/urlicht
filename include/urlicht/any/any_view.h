@@ -1,6 +1,5 @@
-#ifndef URLICHT_ANY_VIEW_H
-#define URLICHT_ANY_VIEW_H
-
+#ifndef URLICHT_ANY_ANY_VIEW_H
+#define URLICHT_ANY_ANY_VIEW_H
 #include <typeinfo>
 #include <type_traits>
 #include <utility>
@@ -218,4 +217,4 @@ namespace urlicht::any {
 
 } // namespace urlicht::any
 
-#endif // URLICHT_ANY_VIEW_H
+#endif //URLICHT_ANY_ANY_VIEW_H

@@ -1,6 +1,5 @@
-#ifndef URLICHT_D_ARY_HEAP_H
-#define URLICHT_D_ARY_HEAP_H
-
+#ifndef URLICHT_CONTAINER_D_ARY_HEAP_H
+#define URLICHT_CONTAINER_D_ARY_HEAP_H
 #include <urlicht/container/detail/d_ary_heap_base_.h>
 #include <urlicht/container/detail/d_ary_heap_mixin_.h>
 
@@ -139,4 +138,4 @@ struct std::uses_allocator<urlicht::container::d_ary_heap<T, Cont, Cmp, Policy, 
       >
 { };
 
-#endif //URLICHT_D_ARY_HEAP_H
+#endif //URLICHT_CONTAINER_D_ARY_HEAP_H

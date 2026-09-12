@@ -1,5 +1,5 @@
-#ifndef URLICHT_FLEXIBLE_FUNCTIONS_FWD_H
-#define URLICHT_FLEXIBLE_FUNCTIONS_FWD_H
+#ifndef URLICHT_FUNCTIONAL_DETAIL_FLEXIBLE_FUNCTIONS_FWD_H
+#define URLICHT_FUNCTIONAL_DETAIL_FLEXIBLE_FUNCTIONS_FWD_H
 #include <cstddef>
 #include <type_traits>
 #include <memory>
@@ -68,4 +68,4 @@ namespace urlicht {
         functional::detail::is_urlicht_flexible_move_only_function<T>::value;
 }
 
-#endif //URLICHT_FLEXIBLE_FUNCTIONS_FWD_H
+#endif //URLICHT_FUNCTIONAL_DETAIL_FLEXIBLE_FUNCTIONS_FWD_H

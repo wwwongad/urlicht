@@ -1,6 +1,5 @@
-#ifndef URLICHT_FLAT_MAP_H
-#define URLICHT_FLAT_MAP_H
-
+#ifndef URLICHT_CONTAINER_FLAT_MAP_H
+#define URLICHT_CONTAINER_FLAT_MAP_H
 #include <urlicht/internal/config.h>
 #include <urlicht/concepts/concepts.h>
 #include <urlicht/algorithm/lower_bound.h>
@@ -2412,4 +2411,4 @@ struct std::uses_allocator<
       >
 { };
 
-#endif //URLICHT_FLAT_MAP_H
+#endif //URLICHT_CONTAINER_FLAT_MAP_H

@@ -1,6 +1,5 @@
-#ifndef URLICHT_BINARY_SEARCH_H
-#define URLICHT_BINARY_SEARCH_H
-
+#ifndef URLICHT_ALGORITHM_BINARY_SEARCH_H
+#define URLICHT_ALGORITHM_BINARY_SEARCH_H
 #include <urlicht/algorithm/lower_bound.h>
 
 namespace urlicht::algorithm {
@@ -36,4 +35,4 @@ namespace urlicht::algorithm {
 }
 
 
-#endif //URLICHT_BINARY_SEARCH_H
+#endif //URLICHT_ALGORITHM_BINARY_SEARCH_H

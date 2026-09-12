@@ -1,5 +1,5 @@
-#ifndef URLICHT_INPLACE_VECTOR_H
-#define URLICHT_INPLACE_VECTOR_H
+#ifndef URLICHT_CONTAINER_INPLACE_VECTOR_H
+#define URLICHT_CONTAINER_INPLACE_VECTOR_H
 #pragma once
 #include <initializer_list>
 #include <utility>
@@ -1235,4 +1235,4 @@ namespace urlicht::container {
 
 }
 
-#endif //URLICHT_INPLACE_VECTOR_H
+#endif //URLICHT_CONTAINER_INPLACE_VECTOR_H

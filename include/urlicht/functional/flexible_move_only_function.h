@@ -1,6 +1,5 @@
-#ifndef URLICHT_FLEXIBLE_MOVE_ONLY_FUNCTION_H
-#define URLICHT_FLEXIBLE_MOVE_ONLY_FUNCTION_H
-
+#ifndef URLICHT_FUNCTIONAL_FLEXIBLE_MOVE_ONLY_FUNCTION_H
+#define URLICHT_FUNCTIONAL_FLEXIBLE_MOVE_ONLY_FUNCTION_H
 #include <urlicht/functional/detail/flexible_functions_fwd.h>
 #include <urlicht/functional/detail/flexible_function_base.h>
 #include <memory_resource>
@@ -52,4 +51,4 @@ namespace urlicht::functional {
     }
 }
 
-#endif //URLICHT_FLEXIBLE_MOVE_ONLY_FUNCTION_H
+#endif //URLICHT_FUNCTIONAL_FLEXIBLE_MOVE_ONLY_FUNCTION_H

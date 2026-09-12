@@ -1,6 +1,5 @@
-#ifndef URLICHT_ALLOCATOR_TYPE_H
-#define URLICHT_ALLOCATOR_TYPE_H
-
+#ifndef URLICHT_INTERNAL_ALLOCATOR_OF_T_H
+#define URLICHT_INTERNAL_ALLOCATOR_OF_T_H
 #include <urlicht/concepts/concepts.h>
 
 namespace urlicht::internal {
@@ -20,4 +19,4 @@ namespace urlicht::internal {
     using allocator_of_t = allocator_type_impl_<Cont, urlicht::concepts::has_allocator<Cont>>::type;
 }
 
-#endif //URLICHT_ALLOCATOR_TYPE_H
+#endif //URLICHT_INTERNAL_ALLOCATOR_OF_T_H

@@ -1,6 +1,5 @@
-#ifndef URLICHT_ADAPTIVE_ANY
-#define URLICHT_ADAPTIVE_ANY
-
+#ifndef URLICHT_ANY_ADAPTIVE_ANY_H
+#define URLICHT_ANY_ADAPTIVE_ANY_H
 #include <urlicht/internal/tag.h>
 #include <urlicht/concepts/concepts.h>
 #include <any>
@@ -375,4 +374,4 @@ namespace urlicht::any {
 
 }
 
-#endif //URLICHT_ADAPTIVE_ANY
+#endif //URLICHT_ANY_ADAPTIVE_ANY_H

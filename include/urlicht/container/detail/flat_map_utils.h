@@ -1,6 +1,5 @@
-#ifndef _URLICHT_FLAT_MAP_UTILS_H
-#define _URLICHT_FLAT_MAP_UTILS_H
-
+#ifndef URLICHT_CONTAINER_DETAIL_FLAT_MAP_UTILS_H
+#define URLICHT_CONTAINER_DETAIL_FLAT_MAP_UTILS_H
 #include <concepts>
 #include <algorithm>
 #include <urlicht/internal/config.h>
@@ -236,4 +235,4 @@ public:
 #endif
 }
 
-#endif //_URLICHT_FLAT_MAP_UTILS_H
+#endif //URLICHT_CONTAINER_DETAIL_FLAT_MAP_UTILS_H

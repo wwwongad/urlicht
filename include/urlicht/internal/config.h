@@ -1,5 +1,5 @@
-#ifndef URLICHT_CONFIG_H
-#define URLICHT_CONFIG_H
+#ifndef URLICHT_INTERNAL_CONFIG_H
+#define URLICHT_INTERNAL_CONFIG_H
 
 #include <cstdio>
 #include <cstdlib>
@@ -176,4 +176,4 @@
     #endif
 #endif
 
-#endif // URLICHT_CONFIG_H
+#endif //URLICHT_INTERNAL_CONFIG_H

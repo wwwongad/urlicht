@@ -1,6 +1,6 @@
 #ifndef URLICHT_MEMORY_DETAIL_RESOURCE_TRAITS_H
 #define URLICHT_MEMORY_DETAIL_RESOURCE_TRAITS_H
-
+#include <concepts>
 #include <cstddef>
 #include <type_traits>
 
@@ -19,7 +19,7 @@ namespace urlicht::memory::detail {
     // reset()/release(), e.g. arena/concurrent_arena) opts in by specializing this to
     // std::true_type. Defaults to std::false_type. resource_view consults it to decide
     // whether per-object deallocations can be elided entirely.
-    template <typename Resource>
+    template <typename>
     struct has_noop_deallocate : std::false_type {};
 
     // True when the resource exposes an unchecked_allocate member: an unchecked, no-throw

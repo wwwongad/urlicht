@@ -1,6 +1,5 @@
-#ifndef URLICHT_IS_D_ARY_HEAPIFIED__H
-#define URLICHT_IS_D_ARY_HEAPIFIED__H
-
+#ifndef URLICHT_CONTAINER_DETAIL_IS_D_ARY_HEAPIFIED__H
+#define URLICHT_CONTAINER_DETAIL_IS_D_ARY_HEAPIFIED__H
 #include <ranges>
 #include <functional>
 
@@ -34,4 +33,4 @@ namespace urlicht::container::detail {
     }
 }
 
-#endif //URLICHT_IS_D_ARY_HEAPIFIED__H
+#endif //URLICHT_CONTAINER_DETAIL_IS_D_ARY_HEAPIFIED__H

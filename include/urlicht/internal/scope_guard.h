@@ -1,7 +1,5 @@
-
-#ifndef URLICHT_SCOPE_GUARD_H
-#define URLICHT_SCOPE_GUARD_H
-
+#ifndef URLICHT_INTERNAL_SCOPE_GUARD_H
+#define URLICHT_INTERNAL_SCOPE_GUARD_H
 #include <functional>
 #include <type_traits>
 #include <utility>
@@ -54,4 +52,4 @@ namespace urlicht::internal {
 
 }
 
-#endif //URLICHT_SCOPE_GUARD_H
+#endif //URLICHT_INTERNAL_SCOPE_GUARD_H

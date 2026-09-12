@@ -1,6 +1,5 @@
-#ifndef URLICHT_FLEXIBLE_FUNCTION_BASE_H
-#define URLICHT_FLEXIBLE_FUNCTION_BASE_H
-
+#ifndef URLICHT_FUNCTIONAL_DETAIL_FLEXIBLE_FUNCTION_BASE_H
+#define URLICHT_FUNCTIONAL_DETAIL_FLEXIBLE_FUNCTION_BASE_H
 #include <urlicht/internal/config.h>
 #include <urlicht/concepts/concepts.h>
 #include <urlicht/internal/tag.h>
@@ -695,4 +694,4 @@ namespace urlicht::functional::detail {
     };
 }
 
-#endif //URLICHT_FLEXIBLE_FUNCTION_BASE_H
+#endif //URLICHT_FUNCTIONAL_DETAIL_FLEXIBLE_FUNCTION_BASE_H

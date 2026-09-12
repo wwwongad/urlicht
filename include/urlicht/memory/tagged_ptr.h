@@ -1,6 +1,5 @@
-#ifndef URLICHT_TAGGED_PTR_H
-#define URLICHT_TAGGED_PTR_H
-#pragma once
+#ifndef URLICHT_MEMORY_TAGGED_PTR_H
+#define URLICHT_MEMORY_TAGGED_PTR_H
 #include <memory>
 #include <type_traits>
 #include <cstdint>
@@ -506,4 +505,4 @@ namespace std {
     };
 } // namespace std
 
-    #endif //URLICHT_TAGGED_PTR_H
+#endif //URLICHT_MEMORY_TAGGED_PTR_H

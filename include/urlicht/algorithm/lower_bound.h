@@ -1,5 +1,5 @@
-#ifndef URLICHT_LOWER_BOUND_H
-#define URLICHT_LOWER_BOUND_H
+#ifndef URLICHT_ALGORITHM_LOWER_BOUND_H
+#define URLICHT_ALGORITHM_LOWER_BOUND_H
 #include <urlicht/internal/config.h>
 #include <bit>
 #include <functional>
@@ -59,4 +59,4 @@ namespace urlicht::algorithm {
     inline constexpr lower_bound_fn lower_bound {};
 }
 
-#endif //URLICHT_LOWER_BOUND_H
+#endif //URLICHT_ALGORITHM_LOWER_BOUND_H

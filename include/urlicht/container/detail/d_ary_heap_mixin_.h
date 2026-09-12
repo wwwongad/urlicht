@@ -1,8 +1,9 @@
-#ifndef URLICHT_D_ARY_HEAP_MIXIN__H
-#define URLICHT_D_ARY_HEAP_MIXIN__H
-
+#ifndef URLICHT_CONTAINER_DETAIL_D_ARY_HEAP_MIXIN__H
+#define URLICHT_CONTAINER_DETAIL_D_ARY_HEAP_MIXIN__H
 #include <urlicht/internal/config.h>
+#include <urlicht/internal/scope_guard.h>
 #include <urlicht/concepts/concepts.h>
+#include <concepts>
 #include <optional>
 
 namespace urlicht::container::detail {
@@ -348,4 +349,4 @@ namespace urlicht::container::detail {
     };
 }
 
-#endif //URLICHT_D_ARY_HEAP_MIXIN__H
+#endif //URLICHT_CONTAINER_DETAIL_D_ARY_HEAP_MIXIN__H

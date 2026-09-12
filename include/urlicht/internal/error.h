@@ -1,8 +1,6 @@
 #ifndef URLICHT_INTERNAL_ERROR_H
 #define URLICHT_INTERNAL_ERROR_H
-
 #include <urlicht/internal/config.h>
-#include <cstdint>
 #include <system_error>
 #include <cerrno>
 

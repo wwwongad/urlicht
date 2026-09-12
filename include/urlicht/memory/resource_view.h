@@ -1,6 +1,5 @@
-#ifndef URLICHT_RESOURCE_VIEW_H
-#define URLICHT_RESOURCE_VIEW_H
-
+#ifndef URLICHT_MEMORY_RESOURCE_VIEW_H
+#define URLICHT_MEMORY_RESOURCE_VIEW_H
 #include <urlicht/memory/detail/resources_fwd.h>
 #include <urlicht/memory/detail/resource_traits.h>
 #include <urlicht/internal/config.h>
@@ -170,4 +169,4 @@ namespace urlicht::memory {
 
 
 
-#endif //URLICHT_RESOURCE_VIEW_H
+#endif //URLICHT_MEMORY_RESOURCE_VIEW_H

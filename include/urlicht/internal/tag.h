@@ -1,6 +1,5 @@
-#ifndef URLICHT_TAG_H
-#define URLICHT_TAG_H
-
+#ifndef URLICHT_INTERNAL_TAG_H
+#define URLICHT_INTERNAL_TAG_H
 #include <type_traits>
 #include <utility>
 #include <memory>
@@ -100,4 +99,4 @@ namespace urlicht {
     inline constexpr bool is_urlicht_allocator_arg_v =
         internal::is_urlicht_allocator_arg_t_t<T>::value;
 }
-#endif //URLICHT_TAG_H
+#endif //URLICHT_INTERNAL_TAG_H

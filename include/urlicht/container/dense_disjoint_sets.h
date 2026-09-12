@@ -1,6 +1,5 @@
-#ifndef URLICHT_DENSE_DISJOINT_SETS_H
-#define URLICHT_DENSE_DISJOINT_SETS_H
-
+#ifndef URLICHT_CONTAINER_DENSE_DISJOINT_SETS_H
+#define URLICHT_CONTAINER_DENSE_DISJOINT_SETS_H
 #include <urlicht/internal/config.h>
 #include <urlicht/concepts/concepts.h>
 #include <urlicht/internal/scope_guard.h>
@@ -11,6 +10,7 @@
 #include <variant>
 #include <vector>
 #include <numeric> // iota
+#include <cstdint>
 
 namespace urlicht::container {
 
@@ -678,4 +678,4 @@ namespace urlicht {
     inline constexpr bool is_urlicht_dense_disjoint_sets_v = container::detail::is_dense_disjoint_sets<T>::value;
 }
 
-#endif // URLICHT_DENSE_DISJOINT_SETS_H
+#endif //URLICHT_CONTAINER_DENSE_DISJOINT_SETS_H

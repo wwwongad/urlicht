@@ -1,6 +1,5 @@
-#ifndef URLICHT_D_ARY_HEAP_BASE__H
-#define URLICHT_D_ARY_HEAP_BASE__H
-
+#ifndef URLICHT_CONTAINER_DETAIL_D_ARY_HEAP_BASE__H
+#define URLICHT_CONTAINER_DETAIL_D_ARY_HEAP_BASE__H
 #include <urlicht/internal/config.h>
 #include <urlicht/concepts/concepts.h>
 #include <urlicht/internal/tag.h>
@@ -15,7 +14,6 @@
 #include <limits>
 #include <optional>
 #include <memory>
-#include <vector>
 
 
 namespace urlicht::container {
@@ -1414,4 +1412,4 @@ namespace urlicht::container {
 }
 
 
-#endif //URLICHT_D_ARY_HEAP_BASE__H
+#endif //URLICHT_CONTAINER_DETAIL_D_ARY_HEAP_BASE__H

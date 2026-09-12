@@ -1,6 +1,5 @@
-#ifndef URLICHT_UPPER_BOUND_H
-#define URLICHT_UPPER_BOUND_H
-
+#ifndef URLICHT_ALGORITHM_UPPER_BOUND_H
+#define URLICHT_ALGORITHM_UPPER_BOUND_H
 #include <urlicht/algorithm/lower_bound.h>
 
 namespace urlicht::algorithm {
@@ -37,4 +36,4 @@ namespace urlicht::algorithm {
 
     inline constexpr upper_bound_fn upper_bound{};
 }
-#endif //URLICHT_UPPER_BOUND_H
+#endif //URLICHT_ALGORITHM_UPPER_BOUND_H

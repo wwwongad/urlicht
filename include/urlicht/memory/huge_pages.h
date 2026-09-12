@@ -1,10 +1,9 @@
 #ifndef URLICHT_MEMORY_HUGE_PAGES_H
 #define URLICHT_MEMORY_HUGE_PAGES_H
-
 #include <urlicht/internal/config.h>
 #include <urlicht/internal/error.h>
 #include <urlicht/memory/detail/resources_fwd.h> // For allocation_result
-#include <cinttypes>
+#include <cstdint>
 #include <limits>
 #include <bit>
 #include <format>

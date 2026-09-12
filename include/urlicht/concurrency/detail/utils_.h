@@ -1,9 +1,8 @@
 #ifndef URLICHT_CONCURRENCY_DETAIL_UTILS__H
 #define URLICHT_CONCURRENCY_DETAIL_UTILS__H
-
 #include <new>
 #include <algorithm>
-#include <cinttypes>
+#include <cstdint>
 
 #if defined(__x86_64__) || defined(__i386__)
 #include <xmmintrin.h>
