@@ -2,7 +2,7 @@
 #define URLICHT_CONTAINER_DENSE_DISJOINT_SETS_H
 #include <urlicht/internal/config.h>
 #include <urlicht/concepts/concepts.h>
-#include <urlicht/internal/scope_guard.h>
+#include <urlicht/scope/scope_action.h>
 #include <algorithm>
 #include <limits>
 #include <optional>
@@ -167,7 +167,7 @@ namespace urlicht::container {
             if (this == &other) [[unlikely]] {
                 return *this;
             }
-            auto other_other_guard = urlicht::internal::make_scope_guard([&] { other.clear(); }); // always clear other
+            auto clear_other_guard = urlicht::scope::make_scope_exit([&]() noexcept { other.clear(); });
             auto do_move = [&] {
                 this->parents_ = std::move(other.parents_);
                 this->metrics_ = std::move(other.metrics_);
@@ -176,9 +176,8 @@ namespace urlicht::container {
             if constexpr (std::is_nothrow_move_assignable_v<dense_disjoint_sets>) {
                 do_move();
             } else {
-                auto clear_this_guard = urlicht::internal::make_scope_guard([&] { this->clear(); });
+                auto clear_this_guard = urlicht::scope::make_scope_fail([&]() noexcept { this->clear(); });
                 do_move();
-                clear_this_guard.release();
             }
             return *this;
         }
@@ -320,12 +319,11 @@ namespace urlicht::container {
             if constexpr (uses_union_heuristic()) {
                 metrics_.emplace_back(initial_metric_value_());
 
-                auto rollback_metrics = urlicht::internal::make_scope_guard([&]() noexcept {
+                auto rollback_metrics = urlicht::scope::make_scope_fail([&]() noexcept {
                     metrics_.pop_back();
                 });
 
                 parents_.emplace_back(new_id);
-                rollback_metrics.release();
             } else {
                 parents_.emplace_back(new_id);
             }
@@ -354,12 +352,11 @@ namespace urlicht::container {
             if constexpr (uses_union_heuristic()) {
                 // resize should have strong exception safety
                 metrics_.resize(new_size, initial_metric_value_());
-                auto rollback_metrics = urlicht::internal::make_scope_guard([&]() noexcept {
+                auto rollback_metrics = urlicht::scope::make_scope_fail([&]() noexcept {
                     metrics_.resize(old_size);
                 });
 
                 parents_.resize(new_size);
-                rollback_metrics.release();
 
                 initialize_new_parents_(old_size, new_size);
             } else {

@@ -4,7 +4,7 @@
 #include <urlicht/internal/config.h>
 #include <urlicht/concepts/concepts.h>
 #include <urlicht/concurrency/detail/utils_.h>
-#include <urlicht/internal/scope_guard.h>
+#include <urlicht/scope/scope_action.h>
 #include <type_traits>
 #include <atomic>
 #include <memory>
@@ -444,7 +444,7 @@ namespace urlicht::concurrency {
             }
 
             size_type i{0U};
-            auto clear_guard = urlicht::internal::make_scope_guard([&] {
+            auto clear_guard = urlicht::scope::make_scope_fail([&]() noexcept {
                 for (size_type j = 0; j < i; ++j) {
                     std::destroy_at(slot_at_(normalized_(curr_write_idx + j)));
                 }
@@ -452,7 +452,6 @@ namespace urlicht::concurrency {
             for (; i < input_size; ++i) {
                 std::construct_at(slot_at_(normalized_(curr_write_idx + i)), gen());
             }
-            clear_guard.release();
 
             writer_idx_.store(curr_write_idx + input_size, std::memory_order_release);
             return input_size;

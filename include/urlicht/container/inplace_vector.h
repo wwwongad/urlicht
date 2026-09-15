@@ -15,7 +15,7 @@
 #include <type_traits>
 #include <urlicht/internal/config.h>
 #include <urlicht/concepts/concepts.h>
-#include <urlicht/internal/scope_guard.h>
+#include <urlicht/scope/scope_action.h>
 
 namespace urlicht::container {
 
@@ -201,7 +201,7 @@ namespace urlicht::container {
         constexpr inplace_vector(inplace_vector&& other)
         noexcept(std::is_nothrow_move_constructible_v<T>)
         requires std::move_constructible<value_type> {
-            auto clear_other_guard = urlicht::internal::make_scope_guard([&]() noexcept { other.clear(); });
+            auto clear_other_guard = urlicht::scope::make_scope_exit([&]() noexcept { other.clear(); });
             append_with_size_(std::make_move_iterator(other.data()), other.size());
         }
 
@@ -277,7 +277,7 @@ namespace urlicht::container {
             if (this == &other) [[unlikely]] {
                 return *this;
             }
-            auto clear_other_guard = urlicht::internal::make_scope_guard([&]() noexcept { other.clear(); });
+            auto clear_other_guard = urlicht::scope::make_scope_exit([&]() noexcept { other.clear(); });
             assign_with_size_(std::make_move_iterator(other.data()), other.size_);
             return *this;
         }

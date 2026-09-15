@@ -5,7 +5,7 @@
 #include <urlicht/algorithm/lower_bound.h>
 #include <urlicht/container/detail/flat_map_utils.h>
 #include <urlicht/internal/tag.h>
-#include <urlicht/internal/scope_guard.h>
+#include <urlicht/scope/scope_action.h>
 #include <concepts>
 #include <initializer_list>
 #include <memory>
@@ -1130,7 +1130,7 @@ namespace urlicht::container {
             if (this == &other) [[unlikely]] {
                 return *this;
             }
-            auto clear_other_guard = urlicht::internal::make_scope_guard([&]() noexcept { other.clear(); });
+            auto clear_other_guard = urlicht::scope::make_scope_exit([&]() noexcept { other.clear(); });
             // Using try-catch block in a conditionally noexcept function causes warning in some compiler
             auto do_move = [this, &other] {
                 this->containers_ = std::move(other.containers_);
@@ -1140,9 +1140,8 @@ namespace urlicht::container {
             if constexpr (std::is_nothrow_move_assignable_v<flat_map>) {
                 do_move();
             } else {
-                auto clear_this_guard = urlicht::internal::make_scope_guard([&]() noexcept { this->clear(); });
+                auto clear_this_guard = urlicht::scope::make_scope_fail([&]() noexcept { this->clear(); });
                 do_move();
-                clear_this_guard.release();
             }
             return *this;
         }
@@ -1574,7 +1573,7 @@ namespace urlicht::container {
 
         [[nodiscard]] constexpr containers extract() &&
         noexcept(std::is_nothrow_move_constructible_v<containers>) {
-            auto clear_anyway = urlicht::internal::make_scope_guard([&]() noexcept { this->clear(); });
+            auto clear_anyway = urlicht::scope::make_scope_exit([&]() noexcept { this->clear(); });
             auto cont = std::move(this->containers_);
             return cont;
         }
@@ -1591,10 +1590,9 @@ namespace urlicht::container {
                 this->keys_mut_() = std::move(key_cont);
                 this->values_mut_() = std::move(mapped_cont);
             } else {
-                auto clear_this_guard = urlicht::internal::make_scope_guard([&]() noexcept { this->clear(); });
+                auto clear_this_guard = urlicht::scope::make_scope_fail([&]() noexcept { this->clear(); });
                 this->keys_mut_() = std::move(key_cont);
                 this->values_mut_() = std::move(mapped_cont);
-                clear_this_guard.release();
             }
         }
 

@@ -1,7 +1,7 @@
 #ifndef URLICHT_CONTAINER_DETAIL_D_ARY_HEAP_MIXIN__H
 #define URLICHT_CONTAINER_DETAIL_D_ARY_HEAP_MIXIN__H
 #include <urlicht/internal/config.h>
-#include <urlicht/internal/scope_guard.h>
+#include <urlicht/scope/scope_action.h>
 #include <urlicht/concepts/concepts.h>
 #include <concepts>
 #include <optional>
@@ -47,12 +47,11 @@ namespace urlicht::container::detail {
         template <typename ...Args>
         requires std::constructible_from<value_type, Args&&...>
         constexpr handle_type emplace(Args&&... args) {
-            auto clear_guard = urlicht::internal::make_scope_guard([this] { this->clear(); });
+            auto clear_guard = urlicht::scope::make_scope_fail([this]() noexcept { this->clear(); });
             auto handle = this->make_and_append_mutable_(std::forward<Args>(args)...);
             if (this->size() > 1) [[likely]] {
                 this->heapify_up_(this->size() - 1);
             }
-            clear_guard.release();
             return handle;
         }
 
@@ -80,11 +79,10 @@ namespace urlicht::container::detail {
         requires std::constructible_from<value_type, Args&&...>
         constexpr void emplace(Args&&... args) {
             this->make_and_append_immutable_(std::forward<Args>(args)...);
-            auto clear_guard = urlicht::internal::make_scope_guard([this] { this->clear(); });
+            auto clear_guard = urlicht::scope::make_scope_fail([this]() noexcept { this->clear(); });
             if (this->size() > 1) [[likely]] {
                 this->heapify_up_(this->size() - 1);
             }
-            clear_guard.release();
         }
 
         constexpr void push(const_reference value) {
@@ -125,11 +123,10 @@ namespace urlicht::container::detail {
         template <urlicht::concepts::compatible_range<value_type> Rng,
                   std::output_iterator<handle_type> OutputIt>
         constexpr void push_range_with_handles(Rng&& rng, OutputIt o_it, bool rebuild_hint = false) {
-            auto clear_guard = urlicht::internal::make_scope_guard([this] { this->clear(); });
+            auto clear_guard = urlicht::scope::make_scope_fail([this]() noexcept { this->clear(); });
             const auto old_size = this->size();
             const auto append_size = this->container_append_range_(std::forward<Rng>(rng), o_it);
             this->rebuild_or_heapify_up_(old_size, append_size, rebuild_hint);
-            clear_guard.release();
         }
 
         // unchecked_/try_/[checked_]modify
