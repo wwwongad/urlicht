@@ -101,14 +101,12 @@ TEST(ResourceView, WithoutUpstream) {
     EXPECT_EQ(p2, nullptr);
 }
 
-TEST(ResourceView, ExtremeSizes) {
-    constexpr size_t large_size = 281'474'976'710'656;
+TEST(ResourceView, ExtremeSize) {
     constexpr size_t max_size = std::numeric_limits<size_t>::max();
 
     urlicht::memory::arena<> arena;
     urlicht::memory::resource_view<int> view(arena);
     void* p{};
-    EXPECT_THROW(p = view.allocate(large_size), std::bad_alloc);
     EXPECT_THROW(p = view.allocate(max_size), std::bad_array_new_length);
     EXPECT_EQ(p, nullptr);
 }

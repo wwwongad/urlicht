@@ -232,8 +232,13 @@ TEST(TaggedPtrTest, Comparisons) {
     EXPECT_TRUE(p1 == p2);
 
     // Ordering
-    EXPECT_GT(p1, p3);
-    EXPECT_LT(p3, p1);
+    if (&a > &b) {
+        EXPECT_GT(p1, p3);
+        EXPECT_LT(p3, p1);
+    } else {
+        EXPECT_GT(p3, p1);
+        EXPECT_LT(p1, p3);
+    }
 }
 
 TEST(TaggedPtrTest, Swap) {

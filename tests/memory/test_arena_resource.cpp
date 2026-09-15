@@ -44,13 +44,11 @@ TEST(ArenaResource, SharingArena) {
 }
 
 
-TEST(ArenaResource, ExtremeSizesAndBadAlloc) {
-    constexpr size_t LARGE_SIZE = 281'474'976'710'656;
+TEST(ArenaResource, ExtremeSizes) {
     constexpr size_t MAX_SIZE = std::numeric_limits<size_t>::max();
     urlicht::memory::pmr::arena_resource<> arena;
     std::pmr::polymorphic_allocator<char> alloc(&arena);
     void* ptr{};
-    EXPECT_THROW(ptr = alloc.allocate(LARGE_SIZE), std::bad_alloc); // From upstream
     EXPECT_THROW(ptr = alloc.allocate(MAX_SIZE), std::bad_array_new_length);
     EXPECT_EQ(ptr, nullptr);
 

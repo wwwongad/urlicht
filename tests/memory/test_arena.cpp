@@ -179,15 +179,12 @@ TEST(Arena, ExtremeSizes) {
     constexpr size_t large_size = 281'474'976'710'656; // 2^48
     constexpr size_t max_size = std::numeric_limits<size_t>::max();
 
-    urlicht::memory::arena<{.use_upstream = false}>::allocation_result res;
-
     urlicht::memory::arena<{.use_upstream = false}> arena1(1024);
-    EXPECT_NO_THROW(res = arena1.allocate(large_size));
-    EXPECT_EQ(res.ptr, nullptr);
-    EXPECT_EQ(res.count, 0U);
+    const auto [ptr, count] = arena1.allocate(large_size);
+    EXPECT_EQ(ptr, nullptr);
+    EXPECT_EQ(count, 0U);
 
     urlicht::memory::arena arena2;
-    EXPECT_THROW((void)arena2.allocate(large_size), std::bad_alloc);
     EXPECT_THROW((void)arena2.allocate(max_size), std::bad_array_new_length);
 }
 

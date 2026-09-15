@@ -260,6 +260,9 @@ TEST(ObserverPtr, ComparisonWithObserver) {
         EXPECT_TRUE(higher >= lower);
     } else {
         EXPECT_TRUE(higher < lower);
+        EXPECT_TRUE(higher <= lower);
+        EXPECT_TRUE(lower > higher);
+        EXPECT_TRUE(lower >= higher);
     }
 }
 

@@ -143,7 +143,9 @@ namespace urlicht::container {
             const auto old_size = size_;
             if constexpr (std::is_trivially_copyable_v<T> && std::contiguous_iterator<Iter> &&
                           std::same_as<std::iter_value_t<Iter>, T>) {
-                std::memcpy(this->data() + old_size, std::to_address(first), n * sizeof(T));
+                if (n > 0) [[likely]] {
+                    std::memcpy(this->data() + old_size, std::to_address(first), n * sizeof(T));
+                }
             } else {
                 std::uninitialized_copy_n(first, n, this->data() + old_size);
             }
