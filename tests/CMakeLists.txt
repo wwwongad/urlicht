@@ -44,4 +44,46 @@ target_link_libraries(urlicht_test
     GTest::gtest_main
 )
 
-gtest_discover_tests(urlicht_test)
+
+if(URLICHT_TEST_SANITIZERS)
+    if(URLICHT_TEST_SANITIZERS MATCHES "^(ON|TRUE|YES|Y|1)$")
+        set(URLICHT_TEST_SANITIZERS "address,undefined")
+    endif()
+
+    string(REPLACE "," ";" _urlicht_sanitizers "${URLICHT_TEST_SANITIZERS}")
+    list(REMOVE_ITEM _urlicht_sanitizers "")
+    list(JOIN _urlicht_sanitizers "," _urlicht_sanitize_flag)
+
+    if(_urlicht_sanitize_flag MATCHES "(^|,)address(,|$)"
+       AND _urlicht_sanitize_flag MATCHES "(^|,)thread(,|$)")
+        message(FATAL_ERROR
+            "URLICHT_TEST_SANITIZERS: 'address' and 'thread' cannot be enabled together; "
+            "configure two separate build trees to run both.")
+    endif()
+
+    if(MSVC)
+        if(NOT _urlicht_sanitize_flag STREQUAL "address")
+            message(WARNING
+                "MSVC only supports the 'address' sanitizer; ignoring "
+                "'${_urlicht_sanitize_flag}' and using /fsanitize=address.")
+        endif()
+        message(STATUS "Urlicht tests: sanitizers enabled (/fsanitize=address)")
+        target_compile_options(urlicht_test PRIVATE /fsanitize=address)
+        target_link_options(urlicht_test PRIVATE /INCREMENTAL:NO)
+    else()
+        message(STATUS "Urlicht tests: sanitizers enabled (-fsanitize=${_urlicht_sanitize_flag})")
+        target_compile_options(urlicht_test PRIVATE
+            -fsanitize=${_urlicht_sanitize_flag}
+            -fno-omit-frame-pointer
+        )
+        target_link_options(urlicht_test PRIVATE
+            -fsanitize=${_urlicht_sanitize_flag}
+        )
+    endif()
+endif()
+
+if(URLICHT_TEST_SANITIZERS)
+    gtest_discover_tests(urlicht_test DISCOVERY_MODE PRE_TEST DISCOVERY_TIMEOUT 120)
+else()
+    gtest_discover_tests(urlicht_test)
+endif()

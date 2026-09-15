@@ -21,8 +21,22 @@ option(URLICHT_BUILD_TESTS "Build the unit tests" OFF)
 option(URLICHT_BUILD_BENCHMARKS "Build benchmarks" OFF)
 option(URLICHT_BUILD_EXAMPLES "Build examples" OFF)
 
+# Enable with:
+#   cmake -S . -B build -DURLICHT_TEST_SANITIZERS=address,undefined
+#   cmake -S . -B build -DURLICHT_TEST_SANITIZERS=thread
+#   cmake -S . -B build -DURLICHT_TEST_SANITIZERS=ON     # shorthand for address,undefined
+# An empty value (the default) disables sanitizing.
+
+# NOTE: the cache docstring must NOT contain a semicolon.
+set(URLICHT_TEST_SANITIZERS "" CACHE STRING
+    "Sanitizers for the test target (address,undefined,thread,leak). Empty disables. ON means address,undefined")
+
 if(BUILD_TESTING AND URLICHT_BUILD_TESTS)
     add_subdirectory(tests)
+elseif(URLICHT_TEST_SANITIZERS)
+    message(WARNING
+        "URLICHT_TEST_SANITIZERS is set ('${URLICHT_TEST_SANITIZERS}') but the tests are disabled;
+         it will have no effect.")
 endif()
 
 if(URLICHT_BUILD_BENCHMARKS)
