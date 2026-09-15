@@ -1182,6 +1182,9 @@ namespace urlicht::container {
             // Extract all elements to the given output iterator in a sorted order
             template <std::output_iterator<value_type> OutputIt>
             constexpr void extract_sorted(OutputIt o_it) {
+                if (container_.size() == 0U) [[unlikely]] {
+                    return;
+                }
                 auto back_idx = container_.size() - 1;
                 while (back_idx >= 1) {
                     *o_it++ = std::move(value_of_(container_.front()));

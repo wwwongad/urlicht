@@ -40,7 +40,7 @@ namespace urlicht::memory {
             }
         };
 
-#if UL_HAS_CPP23
+#if defined(__cpp_lib_allocate_at_least) && __cpp_lib_allocate_at_least >= 202110L
         template <typename Pointer, typename SizeType = std::size_t>
         using allocation_result_impl = std::allocation_result<Pointer, SizeType>;
 #else

@@ -3,6 +3,8 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <utility>
+#include <version>
 
 #define URLICHT_VERSION_MAJOR 1
 #define URLICHT_VERSION_MINOR 0
@@ -39,6 +41,13 @@
 #   define UL_HAS_CPP23 1
 #else
 #   define UL_HAS_CPP23 0
+#endif
+
+// [[indeterminate]]
+#if __has_cpp_attribute(indeterminate)
+#   define UL_HAS_INDETERMINATE_ATTR 1
+#else
+#   define UL_HAS_INDETERMINATE_ATTR 0
 #endif
 
 #if defined(__cpp_modules)
@@ -123,7 +132,7 @@
 
 
 #ifndef UL_UNREACHABLE
-    #if UL_HAS_CPP23
+    #if defined(__cpp_lib_unreachable) && __cpp_lib_unreachable >= 202202L
     #   define UL_UNREACHABLE() std::unreachable()
     #elif defined(__GNUC__) || defined(__clang__)
     #   define UL_UNREACHABLE() __builtin_unreachable()

@@ -180,11 +180,11 @@ TEST(FlatMap, ConstructWithRange) {
 
     std::ranges::sort(deq);
     flat_map<std::string, int> map2(urlicht::sorted, deq);
-    MapEquals(map, {{"0", 1},{"1", 2},{"2", 3},{"3", 4},{"4", 5},{"5", 6}});
+    MapEquals(map2, {{"0", 1},{"1", 2},{"2", 3},{"3", 4},{"4", 5},{"5", 6}});
 
 #if UL_HAS_CPP23
-    flat_map<std::string, int> map2(deq | std::ranges::views::as_rvalue);
-    MapEquals(map, {{"0", 1},{"1", 2},{"2", 3},{"3", 4},{"4", 5},{"5", 6}});
+    flat_map<std::string, int> map3(deq | std::ranges::views::as_rvalue);
+    MapEquals(map3, {{"0", 1},{"1", 2},{"2", 3},{"3", 4},{"4", 5},{"5", 6}});
     for (const auto& p : deq) {
         EXPECT_TRUE(p.first.empty()); // Moved from
     }

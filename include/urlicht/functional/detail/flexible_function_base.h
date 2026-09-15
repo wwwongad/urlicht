@@ -218,7 +218,7 @@ namespace urlicht::functional::detail {
 
         // Data members
         storage_t_ storage_
-#if UL_HAS_CPP26
+#if UL_HAS_INDETERMINATE_ATTR
 [[indeterminate]]
 #endif
         ;

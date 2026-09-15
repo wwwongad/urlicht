@@ -45,7 +45,7 @@ namespace urlicht::concurrency {
             }
         protected:
             alignas(T) std::byte buffer_[sizeof(T) * N]
-#if UL_HAS_CPP26
+#if UL_HAS_INDETERMINATE_ATTR
             [[indeterminate]]
 #endif
             ;

@@ -2,7 +2,8 @@
 #define URLICHT_CONTAINER_DETAIL_FLAT_MAP_UTILS_H
 #include <concepts>
 #include <algorithm>
-#include <urlicht/internal/config.h>
+#include <ranges>
+#include <utility>
 
 namespace urlicht::container::detail {
     // Range-based binary search
@@ -25,10 +26,6 @@ namespace urlicht::container::detail {
         return std::ranges::adjacent_find(begin, end, reversed_cmp) == end;
     }
 
-#if UL_HAS_CPP23
-    template <typename R1, typename R2>
-    using zip_view = std::ranges::zip_view<R1, R2>;
-#else
     template <class R1, class R2>
 class zip_view {
     R1* r1_;
@@ -232,7 +229,6 @@ public:
 };
 
 
-#endif
 }
 
 #endif //URLICHT_CONTAINER_DETAIL_FLAT_MAP_UTILS_H

@@ -98,7 +98,7 @@ namespace urlicht::container {
         size_type size_{0U};
 
         alignas(alignof(T)) std::byte storage_[N * sizeof(T)]
-#if UL_HAS_CPP26
+#if UL_HAS_INDETERMINATE_ATTR
         [[indeterminate]]
 #endif
         ;

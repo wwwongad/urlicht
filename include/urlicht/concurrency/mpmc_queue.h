@@ -70,7 +70,7 @@ namespace urlicht::concurrency {
         private:
             alignas(cacheline_size_) std::atomic<std::uint64_t> turn_{};
             alignas(alignof(T)) std::byte data_[sizeof(T)]
-#if UL_HAS_CPP26
+#if UL_HAS_INDETERMINATE_ATTR
             [[indeterminate]]
 #endif
             ;
@@ -101,7 +101,7 @@ namespace urlicht::concurrency {
 
             // Data member
             alignas(alignof(mpmc_slot_<T>)) std::byte slots_[Capacity * sizeof(mpmc_slot_<T>)]
-#if UL_HAS_CPP26
+#if UL_HAS_INDETERMINATE_ATTR
             [[indeterminate]]
 #endif
             ;

@@ -365,7 +365,7 @@ namespace urlicht::any {
     // make_adaptive_any
     template <typename T,
               typename... Args,
-              std::size_t S = std::max(sizeof(T) * 2, 16ul),
+              std::size_t S = std::max<std::size_t>(sizeof(T) * 2, 16ul),
               std::size_t A = alignof(T)>
     [[nodiscard]] constexpr auto make_adaptive_any(Args&&... args) {
         adaptive_any<S, A> any(urlicht::inplace<T>, std::forward<Args>(args)...);
