@@ -30,4 +30,6 @@
 #include <urlicht/memory/observer_ptr.h>
 #include <urlicht/memory/tagged_ptr.h>
 
-#endif // URLICHT_URLICHT_H
+#include <urlicht/scope/scope_action.h>
+
+#endif //URLICHT_URLICHT_H

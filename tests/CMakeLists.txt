@@ -23,6 +23,7 @@ file(GLOB_RECURSE URLICHT_TEST_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/container/test_*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/functional/test_*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/memory/test_*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/scope/test_*.cpp"
 )
 
 if(NOT URLICHT_TEST_SOURCES)
@@ -32,9 +33,9 @@ endif()
 add_executable(urlicht_test ${URLICHT_TEST_SOURCES})
 
 if(MSVC)
-    target_compile_options(urlicht_test PRIVATE /W4)
+    target_compile_options(urlicht_test PRIVATE /W4 /Zi)
 else()
-    target_compile_options(urlicht_test PRIVATE -Wall -Wextra -Wpedantic)
+    target_compile_options(urlicht_test PRIVATE -g3 -Wall -Wextra -Wpedantic)
 endif()
 
 target_link_libraries(urlicht_test
