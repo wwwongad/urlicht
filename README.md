@@ -3,8 +3,8 @@
 Urlicht is a modern header-only C++20 template library that extends the standard library with a variety of
 infrastructural tools.
 
-The library is designed for high performance, template configurability, and API completeness. It includes containers, 
-algorithms, type-erased wrappers, concurrency primitives, and memory management tools. All public names live under the `urlicht` namespace.
+The library is designed for high performance, template configurability, and type safety. It includes containers, 
+algorithms, type-erased wrappers, concurrency primitives, memory management tools, and design patterns. All public names live under the `urlicht` namespace.
 
 ## Contents
 
@@ -18,6 +18,7 @@ algorithms, type-erased wrappers, concurrency primitives, and memory management 
   - [container](#container)
   - [functional](#functional)
   - [memory](#memory)
+  - [scope](#scope)
 - [Usage](#usage)
 - [Building and installing](#building-and-installing)
 - [Testing, benchmarks, and examples](#testing-benchmarks-and-examples)
@@ -28,7 +29,7 @@ algorithms, type-erased wrappers, concurrency primitives, and memory management 
 - **Performance-oriented** — lock-free queues, branchless binary search, custom SBO type erasure, SoA flat maps, bump arenas, and huge-page support. All rigorously benchmarked against the standard library and other open-source implementations.
 - **Template Configurability** — policies - including storage model, SBO size, and additional features - fully configurable via template parameters, with strict zero-overhead abstraction - i.e., disabled features carry no runtime cost.
 - **API Completeness** — full STL-like interface, standard traits specialization, error handling variants (unchecked/try/error_code/throwing methods), in-place modifiers, and fine-grained tag dispatchers.
-- **Concept-hardened APIs** — every public template constrains its parameters with C++20 concepts and `static_assert`s that produce readable diagnostics.
+- **Concept-hardened APIs** — every public template constrains its parameters with C++20 concepts, guaranteeing overload uniqueness. `static_assert`s are also provided to produce readable diagnostics.
 
 ## Requirements
 
@@ -119,10 +120,16 @@ container concepts (`contiguous_container`, `reservable_container`, `unordered_m
   with an owning smart-pointer mode.
 - `urlicht::memory::huge_pages` — RAII allocation of huge pages (uses mmap on Linux/macOS, VirtualAlloc2 on Windows).
 
+### scope
+
+- `urlicht::scope::make_scope_action` creates paired entry/exit actions with optional conditions.
+- `make_scope_exit`, `make_scope_success`, and `make_scope_fail` create guards for unconditional,
+  successful, and exceptional scope exit respectively. Callbacks must be `noexcept`.
+
 ### internal
 
 Implementation plumbing (`config.h` portability macros, dispatch tags such as `sorted`, `heapified`, and
-`nontype`, a `scope_guard`, allocator traits helpers). Not intended for direct use.
+`nontype`, allocator traits helpers). Not intended for direct use.
 
 ## Usage
 
@@ -210,13 +217,14 @@ cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --install build   # installs headers and the CMake target
 ```
 
-Available options (all default to `OFF`):
+Available options:
 
 | Option                     | Default | Description              |
 |----------------------------|---------|--------------------------|
 | `URLICHT_BUILD_TESTS`      | `OFF`   | Build the unit tests     |
 | `URLICHT_BUILD_BENCHMARKS` | `OFF`   | Build the benchmarks     |
 | `URLICHT_BUILD_EXAMPLES`   | `OFF`   | Build the example programs |
+| `URLICHT_TEST_SANITIZERS`  | *empty* | Sanitizers for the test target (see below) |
 
 To consume the library from another CMake project:
 
@@ -232,8 +240,8 @@ target_link_libraries(my_target PRIVATE Urlicht::urlicht)
 
 ## Testing, benchmarks, and examples
 
-- **Tests** use [GoogleTest](https://github.com/google/googletest) (fetched automatically if not installed).
-  Build and run with `ctest --test-dir build` after configuring with the default options.
+- **Tests** use [GoogleTest](https://github.com/google/googletest) (fetched automatically if not installed). Configure with `-DURLICHT_BUILD_TESTS=ON`.
+- **Sanitizers** are opt-in for the test target: `-DURLICHT_TEST_SANITIZERS=address,undefined` (or `thread`, or `ON` as shorthand for `address,undefined`).
 - **Benchmarks** use [Google Benchmark](https://github.com/google/benchmark) (also fetched automatically if not installed) and compare Urlicht's components
   against the standard library, and — when
   found — the Boost library. Configure with
