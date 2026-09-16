@@ -92,7 +92,7 @@ TEST(FlatMap, TypeAlias) {
     static_assert(std::same_as<map::key_container_type, inplace_vector<int, 1024>>);
     static_assert(std::same_as<map::mapped_container_type, inplace_vector<int, 1024>>);
     static_assert(std::same_as<map::key_compare, std::greater<>>);
-#if UL_HAS_CPP23
+#if defined(__cpp_lib_tuple_like) && __cpp_lib_tuple_like >= 202207L
     static_assert(std::random_access_iterator<map::iterator>);
     static_assert(std::random_access_iterator<map::const_iterator>);
 #endif
@@ -182,7 +182,7 @@ TEST(FlatMap, ConstructWithRange) {
     flat_map<std::string, int> map2(urlicht::sorted, deq);
     MapEquals(map2, {{"0", 1},{"1", 2},{"2", 3},{"3", 4},{"4", 5},{"5", 6}});
 
-#if UL_HAS_CPP23
+#if defined(__cpp_lib_ranges_as_rvalue) && __cpp_lib_ranges_as_rvalue >= 202207L
     flat_map<std::string, int> map3(deq | std::ranges::views::as_rvalue);
     MapEquals(map3, {{"0", 1},{"1", 2},{"2", 3},{"3", 4},{"4", 5},{"5", 6}});
     for (const auto& p : deq) {

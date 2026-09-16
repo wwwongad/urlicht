@@ -133,7 +133,7 @@ TEST(SPSCQueue, PushRangeAndDequeueAll) {
         spsc_queue<tracked_int> q{8};
 
         auto push_and_check = [&](const std::size_t exp) {
-#if !UL_HAS_CPP23
+#if !defined(__cpp_lib_ranges_as_rvalue) || __cpp_lib_ranges_as_rvalue < 202207L
             const auto s = q.push_range(
                 std::ranges::subrange{std::make_move_iterator(vec.begin()), std::make_move_iterator(vec.end())});
             EXPECT_EQ(s, exp);

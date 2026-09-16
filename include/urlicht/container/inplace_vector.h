@@ -97,11 +97,7 @@ namespace urlicht::container {
     private:
         size_type size_{0U};
 
-        alignas(alignof(T)) std::byte storage_[N * sizeof(T)]
-#if UL_HAS_INDETERMINATE_ATTR
-        [[indeterminate]]
-#endif
-        ;
+        alignas(alignof(T)) std::byte storage_[N * sizeof(T)] UL_INDETERMINATE;
         template <urlicht::concepts::compatible_iterator<T> Iter>
         constexpr void assign_with_size_(Iter first, const size_type n)
         noexcept(std::is_nothrow_constructible_v<T, std::iter_reference_t<Iter>> &&

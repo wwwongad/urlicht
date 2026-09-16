@@ -31,23 +31,11 @@
 #   error "C++20 or newer is required for this library."
 #endif
 
-#if UL_CPP_VERSION >= 202600L
-#   define UL_HAS_CPP26 1
-#else
-#   define UL_HAS_CPP26 0
-#endif
-
-#if UL_CPP_VERSION >= 202302L
-#   define UL_HAS_CPP23 1
-#else
-#   define UL_HAS_CPP23 0
-#endif
-
 // [[indeterminate]]
 #if __has_cpp_attribute(indeterminate)
-#   define UL_HAS_INDETERMINATE_ATTR 1
+#   define UL_INDETERMINATE [[indeterminate]]
 #else
-#   define UL_HAS_INDETERMINATE_ATTR 0
+#   define UL_INDETERMINATE
 #endif
 
 #if defined(__cpp_modules)
@@ -84,13 +72,13 @@
 #   error "Unknown operating system. Urlicht supports Linux, Windows, and MacOS only"
 #endif
 
-#if UL_HAS_CPP23
+#if defined(__cpp_constexpr) && __cpp_constexpr >= 202110L
 #   define UL_CONSTEXPR23 constexpr
 #else
 #   define UL_CONSTEXPR23
 #endif
 
-#if UL_HAS_CPP26
+#if defined(__cpp_constexpr) && __cpp_constexpr >= 202406L
 #   define UL_CONSTEXPR26 constexpr
 #else
 #   define UL_CONSTEXPR26

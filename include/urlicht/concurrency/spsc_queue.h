@@ -44,11 +44,7 @@ namespace urlicht::concurrency {
                 return reinterpret_cast<T*>(buffer_);
             }
         protected:
-            alignas(T) std::byte buffer_[sizeof(T) * N]
-#if UL_HAS_INDETERMINATE_ATTR
-            [[indeterminate]]
-#endif
-            ;
+            alignas(T) std::byte buffer_[sizeof(T) * N] UL_INDETERMINATE;
         };
 
         template <typename T, typename Allocator>
