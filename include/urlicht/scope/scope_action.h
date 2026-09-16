@@ -213,6 +213,10 @@ namespace urlicht::scope {
                 active_ = active;
             }
 
+            constexpr void release() noexcept {
+                set_active(false);
+            }
+
             [[nodiscard]] constexpr bool active() const noexcept {
                 return active_;
             }
