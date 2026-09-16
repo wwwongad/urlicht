@@ -444,7 +444,7 @@ namespace urlicht::concurrency {
             }
 
             size_type i{0U};
-            auto clear_guard = urlicht::scope::make_scope_fail([&]() noexcept {
+            auto clear_guard = urlicht::scope::make_scope_exit([&]() noexcept {
                 for (size_type j = 0; j < i; ++j) {
                     std::destroy_at(slot_at_(normalized_(curr_write_idx + j)));
                 }
@@ -454,6 +454,7 @@ namespace urlicht::concurrency {
             }
 
             writer_idx_.store(curr_write_idx + input_size, std::memory_order_release);
+            clear_guard.release();
             return input_size;
         }
 

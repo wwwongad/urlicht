@@ -1140,8 +1140,9 @@ namespace urlicht::container {
             if constexpr (std::is_nothrow_move_assignable_v<flat_map>) {
                 do_move();
             } else {
-                auto clear_this_guard = urlicht::scope::make_scope_fail([&]() noexcept { this->clear(); });
+                auto clear_this_guard = urlicht::scope::make_scope_exit([&]() noexcept { this->clear(); });
                 do_move();
+                clear_this_guard.release();
             }
             return *this;
         }
@@ -1590,9 +1591,10 @@ namespace urlicht::container {
                 this->keys_mut_() = std::move(key_cont);
                 this->values_mut_() = std::move(mapped_cont);
             } else {
-                auto clear_this_guard = urlicht::scope::make_scope_fail([&]() noexcept { this->clear(); });
+                auto clear_this_guard = urlicht::scope::make_scope_exit([&]() noexcept { this->clear(); });
                 this->keys_mut_() = std::move(key_cont);
                 this->values_mut_() = std::move(mapped_cont);
+                clear_this_guard.release();
             }
         }
 

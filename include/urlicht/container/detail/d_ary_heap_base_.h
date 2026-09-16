@@ -623,7 +623,7 @@ namespace urlicht::container {
             template <modify_t_ MT = modify_t_::unknown, typename F>
             constexpr void unchecked_modify_at_impl_(const size_type idx, F&& fn) {
                 UL_ASSERT(idx < container_.size(), "idx out-of-range.");
-                auto clear_guard = urlicht::scope::make_scope_fail([this]() noexcept { this->clear(); });
+                auto clear_guard = urlicht::scope::make_scope_exit([this]() noexcept { this->clear(); });
 
                 std::invoke(std::forward<F>(fn), value_of_(container_[idx]));
                 if constexpr (MT == modify_t_::promote) {
@@ -633,14 +633,16 @@ namespace urlicht::container {
                 } else {
                     heapify_up_or_down_at_(idx);
                 }
+                clear_guard.release();
             }
 
             template <typename Rng>
             constexpr void push_range_impl_(Rng&& rng, bool rebuild_hint) {
-                auto clear_guard = urlicht::scope::make_scope_fail([this]() noexcept { this->clear(); });
+                auto clear_guard = urlicht::scope::make_scope_exit([this]() noexcept { this->clear(); });
                 const auto old_size = size();
                 const auto append_size = container_append_range_(std::forward<Rng>(rng));
                 rebuild_or_heapify_up_(old_size, append_size, rebuild_hint);
+                clear_guard.release();
             }
 
         public:
@@ -948,8 +950,9 @@ namespace urlicht::container {
                 if constexpr (std::is_nothrow_move_assignable_v<self_type_>) {
                     do_move();
                 } else {
-                    auto clear_this_guard = urlicht::scope::make_scope_fail([this]() noexcept { this->clear(); });
+                    auto clear_this_guard = urlicht::scope::make_scope_exit([this]() noexcept { this->clear(); });
                     do_move();
+                    clear_this_guard.release();
                 }
                 return *this;
             }
@@ -972,7 +975,7 @@ namespace urlicht::container {
 
             constexpr void unchecked_pop() {
                 UL_ASSERT(!empty(), "The heap is empty");
-                auto clear_guard = urlicht::scope::make_scope_fail([this]() noexcept { this->clear(); });
+                auto clear_guard = urlicht::scope::make_scope_exit([this]() noexcept { this->clear(); });
                 if constexpr (is_mutable()) {
                     auto top_id = id_of_(container_.front());
                     free_id_(top_id);
@@ -984,6 +987,7 @@ namespace urlicht::container {
                 } else {
                     container_.pop_back();
                 }
+                clear_guard.release();
             }
 
             constexpr bool try_pop() {
@@ -1118,7 +1122,7 @@ namespace urlicht::container {
 
             constexpr void unchecked_erase_at(const size_type idx) {
                 UL_ASSERT(idx < size(), "idx out-of-range");
-                auto clear_guard = urlicht::scope::make_scope_fail([this]() noexcept { this->clear(); });
+                auto clear_guard = urlicht::scope::make_scope_exit([this]() noexcept { this->clear(); });
                 if constexpr (is_mutable()) {
                     const auto id = id_of_(container_[idx]);
                     free_id_(id);
@@ -1130,6 +1134,7 @@ namespace urlicht::container {
                 } else {
                     container_.pop_back();
                 }
+                clear_guard.release();
             }
 
             constexpr bool try_erase_at(const size_type idx) {

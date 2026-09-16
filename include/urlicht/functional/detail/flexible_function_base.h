@@ -124,7 +124,7 @@ namespace urlicht::functional::detail {
                     } else {
                         auto res = allocate_for<T>(alloc);
 
-                        auto dealloc_guard = urlicht::scope::make_scope_fail([&]() noexcept {
+                        auto dealloc_guard = urlicht::scope::make_scope_exit([&]() noexcept {
                             allocator_traits_::deallocate(
                                 alloc, static_cast<std::byte*>(res.allocated_ptr), alloc_size_of<T>
                             );
@@ -132,7 +132,7 @@ namespace urlicht::functional::detail {
                         std::construct_at(
                             static_cast<T*>(res.obj_ptr), *static_cast<const T*>(src.heap.obj_ptr)
                         );
-
+                        dealloc_guard.release();
                         dest.heap.allocated_ptr = res.allocated_ptr;
                         dest.heap.obj_ptr = res.obj_ptr;
                     }
@@ -190,12 +190,14 @@ namespace urlicht::functional::detail {
             } else {
                 auto res = allocate_for<U>(alloc);
 
-                auto dealloc_guard = urlicht::scope::make_scope_fail([&]() noexcept {
+                // scope_exit + release: equivalent to scope_fail (only an exception skips release()).
+                auto dealloc_guard = urlicht::scope::make_scope_exit([&]() noexcept {
                     allocator_traits_::deallocate(
                         alloc, static_cast<std::byte*>(res.allocated_ptr), alloc_size_of<U>
                     );
                 });
                 std::construct_at(static_cast<U*>(res.obj_ptr), std::forward<CArgs>(args)...);
+                dealloc_guard.release();
 
                 storage_.heap.allocated_ptr = res.allocated_ptr;
                 storage_.heap.obj_ptr = res.obj_ptr;
