@@ -228,7 +228,8 @@ namespace urlicht::functional::detail {
         constexpr flexible_function_base() noexcept = default;
         constexpr flexible_function_base(std::nullptr_t) noexcept { }
 
-        template <urlicht::concepts::can_construct<allocator_type_> Alloc_>
+        template <typename Alloc_>
+        requires std::constructible_from<allocator_type_, const Alloc_&>
         constexpr explicit flexible_function_base(const Alloc_& alloc)
         noexcept(std::is_nothrow_constructible_v<allocator_type_, const Alloc_&>)
         : alloc_{alloc} { }
@@ -257,10 +258,11 @@ namespace urlicht::functional::detail {
             construct_from<F>(alloc_, std::forward<F>(func));
         }
 
-        template <typename F, urlicht::concepts::can_construct<allocator_type_> Alloc_>
+        template <typename F, typename Alloc_>
         requires is_callable_from_v<F> &&
                  (!std::is_base_of_v<self_type_, std::remove_cvref_t<F>>) &&
-                 std::constructible_from<std::remove_cvref_t<F>, F&&>
+                 std::constructible_from<std::remove_cvref_t<F>, F&&> &&
+                 std::constructible_from<allocator_type_, const Alloc_&>
         constexpr flexible_function_base(urlicht::internal::allocator_arg_t, const Alloc_& alloc, F&& func)
         noexcept(nothrow_buildable_from_<F, F&&> &&
                  std::is_nothrow_constructible_v<allocator_type_, const Alloc&>)
@@ -292,11 +294,12 @@ namespace urlicht::functional::detail {
             construct_from<F>(alloc_, std::forward<_Args>(args)...);
         }
 
-        template <urlicht::concepts::can_construct<allocator_type_> Alloc_,
+        template <typename Alloc_,
                   typename F, typename... _Args>
         requires is_callable_from_v<F> &&
                  (!std::is_base_of_v<self_type_, F>) &&
-                 std::constructible_from<F, _Args&&...>
+                 std::constructible_from<F, _Args&&...> &&
+                 std::constructible_from<allocator_type_, const Alloc_&>
         constexpr flexible_function_base(
             urlicht::internal::allocator_arg_t, const Alloc_& alloc, urlicht::internal::inplace_t<F>, _Args&&... args
         ) noexcept(nothrow_buildable_from_<F, _Args&&...> &&
@@ -326,11 +329,12 @@ namespace urlicht::functional::detail {
             construct_from<F>(alloc_, il, std::forward<_Args>(args)...);
         }
 
-        template <urlicht::concepts::can_construct<allocator_type_> Alloc_,
+        template <typename Alloc_,
                   typename F, typename C, typename ..._Args>
         requires is_callable_from_v<F> &&
                  (!std::is_base_of_v<self_type_, F>) &&
-                 std::constructible_from<F, std::initializer_list<C>, _Args&&...>
+                 std::constructible_from<F, std::initializer_list<C>, _Args&&...> &&
+                 std::constructible_from<allocator_type_, const Alloc_&>
         constexpr explicit flexible_function_base(
             urlicht::internal::allocator_arg_t, const Alloc_& alloc,
             urlicht::internal::inplace_t<F>, std::initializer_list<C> il, _Args&&... args
@@ -354,8 +358,9 @@ namespace urlicht::functional::detail {
             this->vtable_ = &vtable_for_nontype<f>;
         }
 
-        template <urlicht::concepts::can_construct<allocator_type_> Alloc_, auto f>
-        requires is_callable_from_v<decltype(f)>
+        template <typename Alloc_, auto f>
+        requires is_callable_from_v<decltype(f)> &&
+                 std::constructible_from<allocator_type_, const Alloc_&>
         constexpr flexible_function_base(
             urlicht::internal::allocator_arg_t, const Alloc_& alloc, urlicht::internal::nontype_t<f>
         ) noexcept(std::is_nothrow_constructible_v<allocator_type_, const Alloc&>)

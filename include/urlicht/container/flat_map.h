@@ -485,22 +485,25 @@ namespace urlicht::container {
             std::make_obj_using_allocator<mapped_container_type>(alloc)
           } { }
 
-        template <urlicht::concepts::can_construct<lower_bound_function_type> LowerBoundFn_>
+        template <typename LowerBoundFn_>
+        requires std::constructible_from<lower_bound_function_type, LowerBoundFn_&&>
         explicit constexpr flat_map(LowerBoundFn_&& lower_bound_fn)
         noexcept(std::is_nothrow_default_constructible_v<containers> &&
                  std::is_nothrow_default_constructible_v<key_compare> &&
                  std::is_nothrow_constructible_v<lower_bound_function_type, LowerBoundFn&&>)
         : lower_bound_fn_{std::forward<LowerBoundFn_>(lower_bound_fn)} { }
 
-        template <urlicht::concepts::can_construct<key_compare> KeyComp_>
+        template <typename KeyComp_>
+        requires std::constructible_from<key_compare, KeyComp_&&>
         explicit constexpr flat_map(KeyComp_&& key_comp)
         noexcept(std::is_nothrow_default_constructible_v<containers> &&
                  std::is_nothrow_constructible_v<key_compare, KeyComp_&&> &&
                  std::is_nothrow_default_constructible_v<lower_bound_function_type>)
         : comp_{std::forward<KeyComp_>(key_comp)} { }
 
-        template <urlicht::concepts::can_construct<key_compare> KeyComp_, urlicht::concepts::allocator Alloc>
-        requires uses_allocator_<Alloc>
+        template <typename KeyComp_, urlicht::concepts::allocator Alloc>
+        requires uses_allocator_<Alloc> &&
+                 std::constructible_from<key_compare, KeyComp_&&>
         explicit constexpr flat_map(KeyComp_&& key_comp, const Alloc& alloc)
         : containers_{
             std::make_obj_using_allocator<key_container_type>(alloc),
@@ -508,8 +511,10 @@ namespace urlicht::container {
           },
           comp_{std::forward<KeyComp_>(key_comp)} { }
 
-        template <urlicht::concepts::can_construct<key_compare> KeyComp_,
-                  urlicht::concepts::can_construct<lower_bound_function_type> LowerBoundFn_>
+        template <typename KeyComp_,
+                  typename LowerBoundFn_>
+        requires std::constructible_from<key_compare, KeyComp_&&> &&
+                 std::constructible_from<lower_bound_function_type, LowerBoundFn_&&>
         constexpr flat_map(KeyComp_&& key_comp, LowerBoundFn_&& lower_bound)
         noexcept(std::is_nothrow_default_constructible_v<containers> &&
                  std::is_nothrow_constructible_v<key_compare, KeyComp_&&> &&
@@ -517,10 +522,12 @@ namespace urlicht::container {
         : comp_{std::forward<KeyComp_>(key_comp)},
           lower_bound_fn_{std::forward<LowerBoundFn_>(lower_bound)} { }
 
-        template <urlicht::concepts::can_construct<key_compare> KeyComp_,
-                  urlicht::concepts::can_construct<lower_bound_function_type> LowerBoundFn_,
+        template <typename KeyComp_,
+                  typename LowerBoundFn_,
                   urlicht::concepts::allocator Alloc>
-        requires uses_allocator_<Alloc>
+        requires uses_allocator_<Alloc> &&
+                 std::constructible_from<key_compare, KeyComp_&&> &&
+                 std::constructible_from<lower_bound_function_type, LowerBoundFn_&&>
         constexpr flat_map(KeyComp_&& key_comp, LowerBoundFn_&& lower_bound, const Alloc& alloc)
         : containers_{
             std::make_obj_using_allocator<key_container_type>(alloc),
@@ -529,10 +536,14 @@ namespace urlicht::container {
           comp_{std::forward<KeyComp_>(key_comp)},
           lower_bound_fn_{std::forward<LowerBoundFn_>(lower_bound)} { }
 
-        template <urlicht::concepts::can_construct<key_container_type> KeyCont_,
-                  urlicht::concepts::can_construct<mapped_container_type> MappedCont_,
-                  urlicht::concepts::can_construct<key_compare> KeyComp_ = key_compare,
-                  urlicht::concepts::can_construct<lower_bound_function_type> LowerBoundFn_ = lower_bound_function_type>
+        template <typename KeyCont_,
+                  typename MappedCont_,
+                  typename KeyComp_ = key_compare,
+                  typename LowerBoundFn_ = lower_bound_function_type>
+        requires std::constructible_from<key_container_type, KeyCont_&&> &&
+                 std::constructible_from<mapped_container_type, MappedCont_&&> &&
+                 std::constructible_from<key_compare, KeyComp_&&> &&
+                 std::constructible_from<lower_bound_function_type, LowerBoundFn_&&>
         constexpr flat_map(KeyCont_&& key_cont, MappedCont_&& mapped_cont,
                            KeyComp_&& key_comp = KeyComp_{},
                            LowerBoundFn_&& lower_bound = LowerBoundFn_{})
@@ -543,10 +554,12 @@ namespace urlicht::container {
             sort_unique_append_<false, true>(0U);   // Sort unique
         }
 
-        template <urlicht::concepts::can_construct<key_container_type> KeyCont_,
-                  urlicht::concepts::can_construct<mapped_container_type> MappedCont_,
+        template <typename KeyCont_,
+                  typename MappedCont_,
                   urlicht::concepts::allocator Alloc>
-        requires uses_allocator_<Alloc>
+        requires uses_allocator_<Alloc> &&
+                 std::constructible_from<key_container_type, KeyCont_&&> &&
+                 std::constructible_from<mapped_container_type, MappedCont_&&>
         constexpr flat_map(KeyCont_&& key_cont, MappedCont_&& mapped_cont, const Alloc& alloc)
         : flat_map(std::forward<KeyCont_>(key_cont),
                    std::forward<MappedCont_>(mapped_cont),
@@ -554,11 +567,14 @@ namespace urlicht::container {
                    lower_bound_function_type{},
                    alloc) { }
 
-        template <urlicht::concepts::can_construct<key_container_type> KeyCont_,
-                  urlicht::concepts::can_construct<mapped_container_type> MappedCont_,
-                  urlicht::concepts::can_construct<key_compare> KeyComp_,
+        template <typename KeyCont_,
+                  typename MappedCont_,
+                  typename KeyComp_,
                   urlicht::concepts::allocator Alloc>
-        requires uses_allocator_<Alloc>
+        requires uses_allocator_<Alloc> &&
+                 std::constructible_from<key_container_type, KeyCont_&&> &&
+                 std::constructible_from<mapped_container_type, MappedCont_&&> &&
+                 std::constructible_from<key_compare, KeyComp_&&>
         constexpr flat_map(KeyCont_&& key_cont, MappedCont_&& mapped_cont,
                            KeyComp_&& key_comp, const Alloc& alloc)
         : flat_map(std::forward<KeyCont_>(key_cont),
@@ -567,12 +583,16 @@ namespace urlicht::container {
                    lower_bound_function_type{},
                    alloc) { }
 
-        template <urlicht::concepts::can_construct<key_container_type> KeyCont_,
-                  urlicht::concepts::can_construct<mapped_container_type> MappedCont_,
-                  urlicht::concepts::can_construct<key_compare> KeyComp_ = key_compare,
-                  urlicht::concepts::can_construct<lower_bound_function_type> LowerBoundFn_ = lower_bound_function_type,
+        template <typename KeyCont_,
+                  typename MappedCont_,
+                  typename KeyComp_ = key_compare,
+                  typename LowerBoundFn_ = lower_bound_function_type,
                   urlicht::concepts::allocator Alloc>
-        requires uses_allocator_<Alloc>
+        requires uses_allocator_<Alloc> &&
+                 std::constructible_from<key_container_type, KeyCont_&&> &&
+                 std::constructible_from<mapped_container_type, MappedCont_&&> &&
+                 std::constructible_from<key_compare, KeyComp_&&> &&
+                 std::constructible_from<lower_bound_function_type, LowerBoundFn_&&>
         constexpr flat_map(KeyCont_&& key_cont, MappedCont_&& mapped_cont,
                            KeyComp_&& key_comp, LowerBoundFn_&& lower_bound, const Alloc& alloc)
         : containers_{
@@ -585,10 +605,14 @@ namespace urlicht::container {
             sort_unique_append_<false, true>(0U);   // Sort unique
         }
 
-        template <urlicht::concepts::can_construct<key_container_type> KeyCont_,
-                  urlicht::concepts::can_construct<mapped_container_type> MappedCont_,
-                  urlicht::concepts::can_construct<key_compare> KeyComp_ = key_compare,
-                  urlicht::concepts::can_construct<lower_bound_function_type> LowerBoundFn_ = lower_bound_function_type>
+        template <typename KeyCont_,
+                  typename MappedCont_,
+                  typename KeyComp_ = key_compare,
+                  typename LowerBoundFn_ = lower_bound_function_type>
+        requires std::constructible_from<key_container_type, KeyCont_&&> &&
+                 std::constructible_from<mapped_container_type, MappedCont_&&> &&
+                 std::constructible_from<key_compare, KeyComp_&&> &&
+                 std::constructible_from<lower_bound_function_type, LowerBoundFn_&&>
         constexpr flat_map(urlicht::internal::sorted_t,
                            KeyCont_&& key_cont, MappedCont_&& mapped_cont,
                            KeyComp_&& key_comp = KeyComp_{},
@@ -601,10 +625,12 @@ namespace urlicht::container {
             sort_unique_append_<false, false>(0U);  // Unique (v.) only
         }
 
-        template <urlicht::concepts::can_construct<key_container_type> KeyCont_,
-                  urlicht::concepts::can_construct<mapped_container_type> MappedCont_,
+        template <typename KeyCont_,
+                  typename MappedCont_,
                   urlicht::concepts::allocator Alloc>
-        requires uses_allocator_<Alloc>
+        requires uses_allocator_<Alloc> &&
+                 std::constructible_from<key_container_type, KeyCont_&&> &&
+                 std::constructible_from<mapped_container_type, MappedCont_&&>
         constexpr flat_map(urlicht::internal::sorted_t,
                            KeyCont_&& key_cont, MappedCont_&& mapped_cont, const Alloc& alloc)
         : flat_map(urlicht::sorted,
@@ -614,11 +640,14 @@ namespace urlicht::container {
                    lower_bound_function_type{},
                    alloc) { }
 
-        template <urlicht::concepts::can_construct<key_container_type> KeyCont_,
-                  urlicht::concepts::can_construct<mapped_container_type> MappedCont_,
-                  urlicht::concepts::can_construct<key_compare> KeyComp_,
+        template <typename KeyCont_,
+                  typename MappedCont_,
+                  typename KeyComp_,
                   urlicht::concepts::allocator Alloc>
-        requires uses_allocator_<Alloc>
+        requires uses_allocator_<Alloc> &&
+                 std::constructible_from<key_container_type, KeyCont_&&> &&
+                 std::constructible_from<mapped_container_type, MappedCont_&&> &&
+                 std::constructible_from<key_compare, KeyComp_&&>
         constexpr flat_map(urlicht::internal::sorted_t,
                            KeyCont_&& key_cont, MappedCont_&& mapped_cont,
                            KeyComp_&& key_comp, const Alloc& alloc)
@@ -629,12 +658,16 @@ namespace urlicht::container {
                    lower_bound_function_type{},
                    alloc) { }
 
-        template <urlicht::concepts::can_construct<key_container_type> KeyCont_,
-                  urlicht::concepts::can_construct<mapped_container_type> MappedCont_,
-                  urlicht::concepts::can_construct<key_compare> KeyComp_ = key_compare,
-                  urlicht::concepts::can_construct<lower_bound_function_type> LowerBoundFn_ = lower_bound_function_type,
+        template <typename KeyCont_,
+                  typename MappedCont_,
+                  typename KeyComp_ = key_compare,
+                  typename LowerBoundFn_ = lower_bound_function_type,
                   urlicht::concepts::allocator Alloc>
-        requires uses_allocator_<Alloc>
+        requires uses_allocator_<Alloc> &&
+                 std::constructible_from<key_container_type, KeyCont_&&> &&
+                 std::constructible_from<mapped_container_type, MappedCont_&&> &&
+                 std::constructible_from<key_compare, KeyComp_&&> &&
+                 std::constructible_from<lower_bound_function_type, LowerBoundFn_&&>
         constexpr flat_map(urlicht::internal::sorted_t,
                            KeyCont_&& key_cont, MappedCont_&& mapped_cont,
                            KeyComp_&& key_comp, LowerBoundFn_&& lower_bound, const Alloc& alloc)
@@ -649,10 +682,14 @@ namespace urlicht::container {
             sort_unique_append_<false, false>(0U);  // Unique (v.) only
         }
 
-        template <urlicht::concepts::can_construct<key_container_type> KeyCont_,
-                  urlicht::concepts::can_construct<mapped_container_type> MappedCont_,
-                  urlicht::concepts::can_construct<key_compare> KeyComp_ = key_compare,
-                  urlicht::concepts::can_construct<lower_bound_function_type> LowerBoundFn_ = lower_bound_function_type>
+        template <typename KeyCont_,
+                  typename MappedCont_,
+                  typename KeyComp_ = key_compare,
+                  typename LowerBoundFn_ = lower_bound_function_type>
+        requires std::constructible_from<key_container_type, KeyCont_&&> &&
+                 std::constructible_from<mapped_container_type, MappedCont_&&> &&
+                 std::constructible_from<key_compare, KeyComp_&&> &&
+                 std::constructible_from<lower_bound_function_type, LowerBoundFn_&&>
         constexpr flat_map(urlicht::internal::sorted_unique_t,
                            KeyCont_&& key_cont, MappedCont_&& mapped_cont,
                            KeyComp_&& key_comp = KeyComp_{},
@@ -665,10 +702,12 @@ namespace urlicht::container {
                 "Keys are not sorted unique");
         }
 
-        template <urlicht::concepts::can_construct<key_container_type> KeyCont_,
-                  urlicht::concepts::can_construct<mapped_container_type> MappedCont_,
+        template <typename KeyCont_,
+                  typename MappedCont_,
                   urlicht::concepts::allocator Alloc>
-        requires uses_allocator_<Alloc>
+        requires uses_allocator_<Alloc> &&
+                 std::constructible_from<key_container_type, KeyCont_&&> &&
+                 std::constructible_from<mapped_container_type, MappedCont_&&>
         constexpr flat_map(urlicht::internal::sorted_unique_t,
                            KeyCont_&& key_cont, MappedCont_&& mapped_cont, const Alloc& alloc)
         : flat_map(urlicht::sorted_unique,
@@ -678,11 +717,14 @@ namespace urlicht::container {
                    lower_bound_function_type{},
                    alloc) { }
 
-        template <urlicht::concepts::can_construct<key_container_type> KeyCont_,
-                  urlicht::concepts::can_construct<mapped_container_type> MappedCont_,
-                  urlicht::concepts::can_construct<key_compare> KeyComp_,
+        template <typename KeyCont_,
+                  typename MappedCont_,
+                  typename KeyComp_,
                   urlicht::concepts::allocator Alloc>
-        requires uses_allocator_<Alloc>
+        requires uses_allocator_<Alloc> &&
+                 std::constructible_from<key_container_type, KeyCont_&&> &&
+                 std::constructible_from<mapped_container_type, MappedCont_&&> &&
+                 std::constructible_from<key_compare, KeyComp_&&>
         constexpr flat_map(urlicht::internal::sorted_unique_t,
                            KeyCont_&& key_cont, MappedCont_&& mapped_cont,
                            KeyComp_&& key_comp, const Alloc& alloc)
@@ -693,12 +735,16 @@ namespace urlicht::container {
                    lower_bound_function_type{},
                    alloc) { }
 
-        template <urlicht::concepts::can_construct<key_container_type> KeyCont_,
-                  urlicht::concepts::can_construct<mapped_container_type> MappedCont_,
-                  urlicht::concepts::can_construct<key_compare> KeyComp_ = key_compare,
-                  urlicht::concepts::can_construct<lower_bound_function_type> LowerBoundFn_ = lower_bound_function_type,
+        template <typename KeyCont_,
+                  typename MappedCont_,
+                  typename KeyComp_ = key_compare,
+                  typename LowerBoundFn_ = lower_bound_function_type,
                   urlicht::concepts::allocator Alloc>
-        requires uses_allocator_<Alloc>
+        requires uses_allocator_<Alloc> &&
+                 std::constructible_from<key_container_type, KeyCont_&&> &&
+                 std::constructible_from<mapped_container_type, MappedCont_&&> &&
+                 std::constructible_from<key_compare, KeyComp_&&> &&
+                 std::constructible_from<lower_bound_function_type, LowerBoundFn_&&>
         constexpr flat_map(urlicht::internal::sorted_unique_t,
                            KeyCont_&& key_cont, MappedCont_&& mapped_cont,
                            KeyComp_&& key_comp, LowerBoundFn_&& lower_bound, const Alloc& alloc)
@@ -715,8 +761,10 @@ namespace urlicht::container {
         
         template <urlicht::concepts::compatible_iterator<value_type> Iter,
                   std::sentinel_for<Iter> Sentinel,
-                  urlicht::concepts::can_construct<key_compare> KeyComp_ = key_compare,
-                  urlicht::concepts::can_construct<lower_bound_function_type> LowerBoundFn_ = lower_bound_function_type>
+                  typename KeyComp_ = key_compare,
+                  typename LowerBoundFn_ = lower_bound_function_type>
+        requires std::constructible_from<key_compare, KeyComp_&&> &&
+                 std::constructible_from<lower_bound_function_type, LowerBoundFn_&&>
         constexpr flat_map(Iter first, Sentinel last,
                            KeyComp_&& key_comp = KeyComp_{},
                            LowerBoundFn_&& lower_bound = LowerBoundFn_{})
@@ -734,9 +782,10 @@ namespace urlicht::container {
 
         template <urlicht::concepts::compatible_iterator<value_type> Iter,
                   std::sentinel_for<Iter> Sentinel,
-                  urlicht::concepts::can_construct<key_compare> KeyComp_,
+                  typename KeyComp_,
                   urlicht::concepts::allocator Alloc>
-        requires uses_allocator_<Alloc>
+        requires uses_allocator_<Alloc> &&
+                 std::constructible_from<key_compare, KeyComp_&&>
         constexpr flat_map(Iter first, Sentinel last, KeyComp_&& key_comp, const Alloc& alloc)
         : flat_map(first, last,
                    std::forward<KeyComp_>(key_comp),
@@ -745,10 +794,12 @@ namespace urlicht::container {
 
         template <urlicht::concepts::compatible_iterator<value_type> Iter,
                   std::sentinel_for<Iter> Sentinel,
-                  urlicht::concepts::can_construct<key_compare> KeyComp_ = key_compare,
-                  urlicht::concepts::can_construct<lower_bound_function_type> LowerBoundFn_ = lower_bound_function_type,
+                  typename KeyComp_ = key_compare,
+                  typename LowerBoundFn_ = lower_bound_function_type,
                   urlicht::concepts::allocator Alloc>
-        requires uses_allocator_<Alloc>
+        requires uses_allocator_<Alloc> &&
+                 std::constructible_from<key_compare, KeyComp_&&> &&
+                 std::constructible_from<lower_bound_function_type, LowerBoundFn_&&>
         constexpr flat_map(Iter first, Sentinel last,
                            KeyComp_&& key_comp, LowerBoundFn_&& lower_bound, const Alloc& alloc)
         : flat_map(std::forward<KeyComp_>(key_comp), std::forward<LowerBoundFn_>(lower_bound), alloc) {
@@ -757,8 +808,10 @@ namespace urlicht::container {
 
         template <urlicht::concepts::compatible_iterator<value_type> Iter,
                   std::sentinel_for<Iter> Sentinel,
-                  urlicht::concepts::can_construct<key_compare> KeyComp_ = key_compare,
-                  urlicht::concepts::can_construct<lower_bound_function_type> LowerBoundFn_ = lower_bound_function_type>
+                  typename KeyComp_ = key_compare,
+                  typename LowerBoundFn_ = lower_bound_function_type>
+        requires std::constructible_from<key_compare, KeyComp_&&> &&
+                 std::constructible_from<lower_bound_function_type, LowerBoundFn_&&>
         constexpr flat_map(urlicht::internal::sorted_t,
                            Iter first, Sentinel last,
                            KeyComp_&& key_comp = KeyComp_{},
@@ -779,9 +832,10 @@ namespace urlicht::container {
 
         template <urlicht::concepts::compatible_iterator<value_type> Iter,
                   std::sentinel_for<Iter> Sentinel,
-                  urlicht::concepts::can_construct<key_compare> KeyComp_,
+                  typename KeyComp_,
                   urlicht::concepts::allocator Alloc>
-        requires uses_allocator_<Alloc>
+        requires uses_allocator_<Alloc> &&
+                 std::constructible_from<key_compare, KeyComp_&&>
         constexpr flat_map(urlicht::internal::sorted_t,
                            Iter first, Sentinel last, KeyComp_&& key_comp, const Alloc& alloc)
         : flat_map(urlicht::sorted, first, last,
@@ -791,10 +845,12 @@ namespace urlicht::container {
 
         template <urlicht::concepts::compatible_iterator<value_type> Iter,
                   std::sentinel_for<Iter> Sentinel,
-                  urlicht::concepts::can_construct<key_compare> KeyComp_ = key_compare,
-                  urlicht::concepts::can_construct<lower_bound_function_type> LowerBoundFn_ = lower_bound_function_type,
+                  typename KeyComp_ = key_compare,
+                  typename LowerBoundFn_ = lower_bound_function_type,
                   urlicht::concepts::allocator Alloc>
-        requires uses_allocator_<Alloc>
+        requires uses_allocator_<Alloc> &&
+                 std::constructible_from<key_compare, KeyComp_&&> &&
+                 std::constructible_from<lower_bound_function_type, LowerBoundFn_&&>
         constexpr flat_map(urlicht::internal::sorted_t,
                            Iter first, Sentinel last,
                            KeyComp_&& key_comp, LowerBoundFn_&& lower_bound, const Alloc& alloc)
@@ -806,8 +862,10 @@ namespace urlicht::container {
 
         template <urlicht::concepts::compatible_iterator<value_type> Iter,
                   std::sentinel_for<Iter> Sentinel,
-                  urlicht::concepts::can_construct<key_compare> KeyComp_ = key_compare,
-                  urlicht::concepts::can_construct<lower_bound_function_type> LowerBoundFn_ = lower_bound_function_type>
+                  typename KeyComp_ = key_compare,
+                  typename LowerBoundFn_ = lower_bound_function_type>
+        requires std::constructible_from<key_compare, KeyComp_&&> &&
+                 std::constructible_from<lower_bound_function_type, LowerBoundFn_&&>
         constexpr flat_map(urlicht::internal::sorted_unique_t,
                            Iter first, Sentinel last,
                            KeyComp_&& key_comp = KeyComp_{},
@@ -829,9 +887,10 @@ namespace urlicht::container {
 
         template <urlicht::concepts::compatible_iterator<value_type> Iter,
                   std::sentinel_for<Iter> Sentinel,
-                  urlicht::concepts::can_construct<key_compare> KeyComp_,
+                  typename KeyComp_,
                   urlicht::concepts::allocator Alloc>
-        requires uses_allocator_<Alloc>
+        requires uses_allocator_<Alloc> &&
+                 std::constructible_from<key_compare, KeyComp_&&>
         constexpr flat_map(urlicht::internal::sorted_unique_t,
                            Iter first, Sentinel last, KeyComp_&& key_comp, const Alloc& alloc)
         : flat_map(urlicht::sorted_unique, first, last,
@@ -840,10 +899,12 @@ namespace urlicht::container {
 
         template <urlicht::concepts::compatible_iterator<value_type> Iter,
                   std::sentinel_for<Iter> Sentinel,
-                  urlicht::concepts::can_construct<key_compare> KeyComp_ = key_compare,
-                  urlicht::concepts::can_construct<lower_bound_function_type> LowerBoundFn_ = lower_bound_function_type,
+                  typename KeyComp_ = key_compare,
+                  typename LowerBoundFn_ = lower_bound_function_type,
                   urlicht::concepts::allocator Alloc>
-        requires uses_allocator_<Alloc>
+        requires uses_allocator_<Alloc> &&
+                 std::constructible_from<key_compare, KeyComp_&&> &&
+                 std::constructible_from<lower_bound_function_type, LowerBoundFn_&&>
         constexpr flat_map(urlicht::internal::sorted_unique_t,
                            Iter first, Sentinel last,
                            KeyComp_&& key_comp, LowerBoundFn_&& lower_bound, const Alloc& alloc)
@@ -854,9 +915,11 @@ namespace urlicht::container {
         }
 
         template <urlicht::concepts::compatible_range<value_type> Rng,
-                  urlicht::concepts::can_construct<key_compare> KeyComp_ = key_compare,
-                  urlicht::concepts::can_construct<lower_bound_function_type> LowerBoundFn_ = lower_bound_function_type>
-        requires (!std::same_as<std::remove_cvref_t<Rng>, flat_map>)
+                  typename KeyComp_ = key_compare,
+                  typename LowerBoundFn_ = lower_bound_function_type>
+        requires (!std::same_as<std::remove_cvref_t<Rng>, flat_map>) &&
+                 std::constructible_from<key_compare, KeyComp_&&> &&
+                 std::constructible_from<lower_bound_function_type, LowerBoundFn_&&>
         constexpr flat_map(Rng&& rng,
                            KeyComp_&& key_comp = KeyComp_{},
                            LowerBoundFn_&& lower_bound = LowerBoundFn_{})
@@ -872,9 +935,10 @@ namespace urlicht::container {
         : flat_map(std::forward<Rng>(rng), key_compare{}, lower_bound_function_type{}, alloc) { }
 
         template <urlicht::concepts::compatible_range<value_type> Rng,
-                  urlicht::concepts::can_construct<key_compare> KeyComp_,
+                  typename KeyComp_,
                   urlicht::concepts::allocator Alloc>
-        requires (!std::same_as<std::remove_cvref_t<Rng>, flat_map>) && uses_allocator_<Alloc>
+        requires (!std::same_as<std::remove_cvref_t<Rng>, flat_map>) && uses_allocator_<Alloc> &&
+                 std::constructible_from<key_compare, KeyComp_&&>
         constexpr flat_map(Rng&& rng, KeyComp_&& key_comp, const Alloc& alloc)
         : flat_map(std::forward<Rng>(rng),
                    std::forward<KeyComp_>(key_comp),
@@ -882,10 +946,12 @@ namespace urlicht::container {
                    alloc) { }
 
         template <urlicht::concepts::compatible_range<value_type> Rng,
-                  urlicht::concepts::can_construct<key_compare> KeyComp_ = key_compare,
-                  urlicht::concepts::can_construct<lower_bound_function_type> LowerBoundFn_ = lower_bound_function_type,
+                  typename KeyComp_ = key_compare,
+                  typename LowerBoundFn_ = lower_bound_function_type,
                   urlicht::concepts::allocator Alloc>
-        requires (!std::same_as<std::remove_cvref_t<Rng>, flat_map>) && uses_allocator_<Alloc>
+        requires (!std::same_as<std::remove_cvref_t<Rng>, flat_map>) && uses_allocator_<Alloc> &&
+                 std::constructible_from<key_compare, KeyComp_&&> &&
+                 std::constructible_from<lower_bound_function_type, LowerBoundFn_&&>
         constexpr flat_map(Rng&& rng,
                            KeyComp_&& key_comp, LowerBoundFn_&& lower_bound, const Alloc& alloc)
         : flat_map(std::forward<KeyComp_>(key_comp), std::forward<LowerBoundFn_>(lower_bound), alloc) {
@@ -893,8 +959,10 @@ namespace urlicht::container {
         }
 
         template <urlicht::concepts::compatible_range<value_type> Rng,
-                  urlicht::concepts::can_construct<key_compare> KeyComp_ = key_compare,
-                  urlicht::concepts::can_construct<lower_bound_function_type> LowerBoundFn_ = lower_bound_function_type>
+                  typename KeyComp_ = key_compare,
+                  typename LowerBoundFn_ = lower_bound_function_type>
+        requires std::constructible_from<key_compare, KeyComp_&&> &&
+                 std::constructible_from<lower_bound_function_type, LowerBoundFn_&&>
         constexpr flat_map(urlicht::internal::sorted_t,
                            Rng&& rng,
                            KeyComp_&& key_comp = KeyComp_{},
@@ -912,9 +980,10 @@ namespace urlicht::container {
         : flat_map(urlicht::sorted, std::forward<Rng>(rng), key_compare{}, lower_bound_function_type{}, alloc) { }
 
         template <urlicht::concepts::compatible_range<value_type> Rng,
-                  urlicht::concepts::can_construct<key_compare> KeyComp_,
+                  typename KeyComp_,
                   urlicht::concepts::allocator Alloc>
-        requires uses_allocator_<Alloc>
+        requires uses_allocator_<Alloc> &&
+                 std::constructible_from<key_compare, KeyComp_&&>
         constexpr flat_map(urlicht::internal::sorted_t, Rng&& rng, KeyComp_&& key_comp, const Alloc& alloc)
         : flat_map(urlicht::sorted,
                    std::forward<Rng>(rng),
@@ -923,10 +992,12 @@ namespace urlicht::container {
                    alloc) { }
 
         template <urlicht::concepts::compatible_range<value_type> Rng,
-                  urlicht::concepts::can_construct<key_compare> KeyComp_ = key_compare,
-                  urlicht::concepts::can_construct<lower_bound_function_type> LowerBoundFn_ = lower_bound_function_type,
+                  typename KeyComp_ = key_compare,
+                  typename LowerBoundFn_ = lower_bound_function_type,
                   urlicht::concepts::allocator Alloc>
-        requires uses_allocator_<Alloc>
+        requires uses_allocator_<Alloc> &&
+                 std::constructible_from<key_compare, KeyComp_&&> &&
+                 std::constructible_from<lower_bound_function_type, LowerBoundFn_&&>
         constexpr flat_map(urlicht::internal::sorted_t,
                            Rng&& rng,
                            KeyComp_&& key_comp, LowerBoundFn_&& lower_bound, const Alloc& alloc)
@@ -936,8 +1007,10 @@ namespace urlicht::container {
         }
 
         template <urlicht::concepts::compatible_range<value_type> Rng,
-                  urlicht::concepts::can_construct<key_compare> KeyComp_ = key_compare,
-                  urlicht::concepts::can_construct<lower_bound_function_type> LowerBoundFn_ = lower_bound_function_type>
+                  typename KeyComp_ = key_compare,
+                  typename LowerBoundFn_ = lower_bound_function_type>
+        requires std::constructible_from<key_compare, KeyComp_&&> &&
+                 std::constructible_from<lower_bound_function_type, LowerBoundFn_&&>
         constexpr flat_map(urlicht::internal::sorted_unique_t,
                            Rng&& rng,
                            KeyComp_&& key_comp = KeyComp_{},
@@ -957,9 +1030,10 @@ namespace urlicht::container {
         : flat_map(urlicht::sorted_unique, std::forward<Rng>(rng), key_compare{}, lower_bound_function_type{}, alloc) { }
 
         template <urlicht::concepts::compatible_range<value_type> Rng,
-                  urlicht::concepts::can_construct<key_compare> KeyComp_,
+                  typename KeyComp_,
                   urlicht::concepts::allocator Alloc>
-        requires uses_allocator_<Alloc>
+        requires uses_allocator_<Alloc> &&
+                 std::constructible_from<key_compare, KeyComp_&&>
         constexpr flat_map(urlicht::internal::sorted_unique_t, Rng&& rng, KeyComp_&& key_comp, const Alloc& alloc)
         : flat_map(urlicht::sorted_unique,
                    std::forward<Rng>(rng),
@@ -968,10 +1042,12 @@ namespace urlicht::container {
                    alloc) { }
 
         template <urlicht::concepts::compatible_range<value_type> Rng,
-                  urlicht::concepts::can_construct<key_compare> KeyComp_ = key_compare,
-                  urlicht::concepts::can_construct<lower_bound_function_type> LowerBoundFn_ = lower_bound_function_type,
+                  typename KeyComp_ = key_compare,
+                  typename LowerBoundFn_ = lower_bound_function_type,
                   urlicht::concepts::allocator Alloc>
-        requires uses_allocator_<Alloc>
+        requires uses_allocator_<Alloc> &&
+                 std::constructible_from<key_compare, KeyComp_&&> &&
+                 std::constructible_from<lower_bound_function_type, LowerBoundFn_&&>
         constexpr flat_map(urlicht::internal::sorted_unique_t,
                            Rng&& rng,
                            KeyComp_&& key_comp, LowerBoundFn_&& lower_bound, const Alloc& alloc)
@@ -982,8 +1058,10 @@ namespace urlicht::container {
             append_range_(std::forward<Rng>(rng));
         }
 
-        template <urlicht::concepts::can_construct<key_compare> KeyComp_ = key_compare,
-                  urlicht::concepts::can_construct<lower_bound_function_type> LowerBoundFn_ = lower_bound_function_type>
+        template <typename KeyComp_ = key_compare,
+                  typename LowerBoundFn_ = lower_bound_function_type>
+        requires std::constructible_from<key_compare, KeyComp_&&> &&
+                 std::constructible_from<lower_bound_function_type, LowerBoundFn_&&>
         constexpr flat_map(std::initializer_list<value_type> init,
                            KeyComp_&& key_comp = KeyComp_{},
                            LowerBoundFn_&& lower_bound = LowerBoundFn_{})
@@ -996,8 +1074,9 @@ namespace urlicht::container {
         constexpr flat_map(std::initializer_list<value_type> init, const Alloc& alloc)
         : flat_map(init.begin(), init.end(), key_compare{}, lower_bound_function_type{}, alloc) {}
 
-        template <urlicht::concepts::can_construct<key_compare> KeyComp_, urlicht::concepts::allocator Alloc>
-        requires uses_allocator_<Alloc>
+        template <typename KeyComp_, urlicht::concepts::allocator Alloc>
+        requires uses_allocator_<Alloc> &&
+                 std::constructible_from<key_compare, KeyComp_&&>
         constexpr flat_map(std::initializer_list<value_type> init,
                            KeyComp_&& key_comp, const Alloc& alloc)
         : flat_map(init.begin(), init.end(),
@@ -1005,10 +1084,12 @@ namespace urlicht::container {
                    lower_bound_function_type{},
                    alloc) {}
 
-        template <urlicht::concepts::can_construct<key_compare> KeyComp_ = key_compare,
-                  urlicht::concepts::can_construct<lower_bound_function_type> LowerBoundFn_ = lower_bound_function_type,
+        template <typename KeyComp_ = key_compare,
+                  typename LowerBoundFn_ = lower_bound_function_type,
                   urlicht::concepts::allocator Alloc>
-        requires uses_allocator_<Alloc>
+        requires uses_allocator_<Alloc> &&
+                 std::constructible_from<key_compare, KeyComp_&&> &&
+                 std::constructible_from<lower_bound_function_type, LowerBoundFn_&&>
         constexpr flat_map(std::initializer_list<value_type> init,
                            KeyComp_&& key_comp, LowerBoundFn_&& lower_bound, const Alloc& alloc)
         : flat_map(init.begin(), init.end(),
@@ -1016,8 +1097,10 @@ namespace urlicht::container {
                    std::forward<LowerBoundFn_>(lower_bound),
                    alloc) {}
 
-        template <urlicht::concepts::can_construct<key_compare> KeyComp_ = key_compare,
-                  urlicht::concepts::can_construct<lower_bound_function_type> LowerBoundFn_ = lower_bound_function_type>
+        template <typename KeyComp_ = key_compare,
+                  typename LowerBoundFn_ = lower_bound_function_type>
+        requires std::constructible_from<key_compare, KeyComp_&&> &&
+                 std::constructible_from<lower_bound_function_type, LowerBoundFn_&&>
         constexpr flat_map(urlicht::internal::sorted_t,
                            std::initializer_list<value_type> init,
                            KeyComp_&& key_comp = KeyComp_{},
@@ -1031,8 +1114,9 @@ namespace urlicht::container {
         constexpr flat_map(urlicht::internal::sorted_t, std::initializer_list<value_type> init, const Alloc& alloc)
         : flat_map(urlicht::sorted, init.begin(), init.end(), key_compare{}, lower_bound_function_type{}, alloc) {}
 
-        template <urlicht::concepts::can_construct<key_compare> KeyComp_, urlicht::concepts::allocator Alloc>
-        requires uses_allocator_<Alloc>
+        template <typename KeyComp_, urlicht::concepts::allocator Alloc>
+        requires uses_allocator_<Alloc> &&
+                 std::constructible_from<key_compare, KeyComp_&&>
         constexpr flat_map(urlicht::internal::sorted_t,
                            std::initializer_list<value_type> init,
                            KeyComp_&& key_comp, const Alloc& alloc)
@@ -1041,10 +1125,12 @@ namespace urlicht::container {
                    lower_bound_function_type{},
                    alloc) {}
 
-        template <urlicht::concepts::can_construct<key_compare> KeyComp_ = key_compare,
-                  urlicht::concepts::can_construct<lower_bound_function_type> LowerBoundFn_ = lower_bound_function_type,
+        template <typename KeyComp_ = key_compare,
+                  typename LowerBoundFn_ = lower_bound_function_type,
                   urlicht::concepts::allocator Alloc>
-        requires uses_allocator_<Alloc>
+        requires uses_allocator_<Alloc> &&
+                 std::constructible_from<key_compare, KeyComp_&&> &&
+                 std::constructible_from<lower_bound_function_type, LowerBoundFn_&&>
         constexpr flat_map(urlicht::internal::sorted_t,
                            std::initializer_list<value_type> init,
                            KeyComp_&& key_comp, LowerBoundFn_&& lower_bound, const Alloc& alloc)
@@ -1053,8 +1139,10 @@ namespace urlicht::container {
                    std::forward<LowerBoundFn_>(lower_bound),
                    alloc) {}
 
-        template <urlicht::concepts::can_construct<key_compare> KeyComp_ = key_compare,
-                  urlicht::concepts::can_construct<lower_bound_function_type> LowerBoundFn_ = lower_bound_function_type>
+        template <typename KeyComp_ = key_compare,
+                  typename LowerBoundFn_ = lower_bound_function_type>
+        requires std::constructible_from<key_compare, KeyComp_&&> &&
+                 std::constructible_from<lower_bound_function_type, LowerBoundFn_&&>
         constexpr flat_map(urlicht::internal::sorted_unique_t,
                            std::initializer_list<value_type> init,
                            KeyComp_&& key_comp = KeyComp_{},
@@ -1069,8 +1157,9 @@ namespace urlicht::container {
                            std::initializer_list<value_type> init, const Alloc& alloc)
         : flat_map(urlicht::sorted_unique, init.begin(), init.end(), key_compare{}, lower_bound_function_type{}, alloc) {}
 
-        template <urlicht::concepts::can_construct<key_compare> KeyComp_, urlicht::concepts::allocator Alloc>
-        requires uses_allocator_<Alloc>
+        template <typename KeyComp_, urlicht::concepts::allocator Alloc>
+        requires uses_allocator_<Alloc> &&
+                 std::constructible_from<key_compare, KeyComp_&&>
         constexpr flat_map(urlicht::internal::sorted_unique_t,
                            std::initializer_list<value_type> init,
                            KeyComp_&& key_comp, const Alloc& alloc)
@@ -1079,10 +1168,12 @@ namespace urlicht::container {
                    lower_bound_function_type{},
                    alloc) {}
 
-        template <urlicht::concepts::can_construct<key_compare> KeyComp_ = key_compare,
-                  urlicht::concepts::can_construct<lower_bound_function_type> LowerBoundFn_ = lower_bound_function_type,
+        template <typename KeyComp_ = key_compare,
+                  typename LowerBoundFn_ = lower_bound_function_type,
                   urlicht::concepts::allocator Alloc>
-        requires uses_allocator_<Alloc>
+        requires uses_allocator_<Alloc> &&
+                 std::constructible_from<key_compare, KeyComp_&&> &&
+                 std::constructible_from<lower_bound_function_type, LowerBoundFn_&&>
         constexpr flat_map(urlicht::internal::sorted_unique_t,
                            std::initializer_list<value_type> init,
                            KeyComp_&& key_comp, LowerBoundFn_&& lower_bound, const Alloc& alloc)
@@ -1520,8 +1611,9 @@ namespace urlicht::container {
             return this->try_emplace_(std::move(value.first), std::move(value.second));
         }
 
-        template <urlicht::concepts::can_construct<value_type> PairLike>
-        requires (!std::same_as<std::remove_cvref_t<PairLike>, value_type>)
+        template <typename PairLike>
+        requires (!std::same_as<std::remove_cvref_t<PairLike>, value_type>) &&
+                 std::constructible_from<value_type, PairLike&&>
         constexpr std::pair<iterator, bool> insert(PairLike&& value) {
             movable_value_type pair{std::forward<PairLike>(value)};
             return this->try_emplace_(std::move(pair.first), std::move(pair.second));
@@ -1535,8 +1627,9 @@ namespace urlicht::container {
             return this->try_emplace_hint_(hint, std::move(value.first), std::move(value.second)).first;
         }
 
-        template <urlicht::concepts::can_construct<value_type> PairLike>
-        requires (!std::same_as<std::remove_cvref_t<PairLike>, value_type>)
+        template <typename PairLike>
+        requires (!std::same_as<std::remove_cvref_t<PairLike>, value_type>) &&
+                 std::constructible_from<value_type, PairLike&&>
         constexpr iterator insert(const_iterator hint, PairLike&& value) {
             movable_value_type pair{std::forward<PairLike>(value)};
             return this->try_emplace_hint_(hint, std::move(pair.first), std::move(pair.second)).first;

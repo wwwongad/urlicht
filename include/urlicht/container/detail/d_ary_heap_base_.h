@@ -323,7 +323,8 @@ namespace urlicht::container {
                     noexcept(std::is_nothrow_default_constructible_v<value_compare>)
                 = default;
 
-                template <urlicht::concepts::can_construct<value_compare> ValueComp>
+                template <typename ValueComp>
+                requires std::constructible_from<value_compare, ValueComp>
                 constexpr comparator_adaptor_(ValueComp comp)
                     noexcept(std::is_nothrow_move_constructible_v<value_compare>)
                 : comp_{std::move(comp)} {  }
@@ -666,15 +667,17 @@ namespace urlicht::container {
             { }
 
             // Construct from ValueComp
-            template <urlicht::concepts::can_construct<value_compare> ValueComp>
+            template <typename ValueComp>
+            requires std::constructible_from<value_compare, ValueComp>
             explicit constexpr d_ary_heap_base_(ValueComp comp)
             noexcept(std::is_nothrow_default_constructible_v<container_type> &&
                      std::is_nothrow_constructible_v<stored_compare_, ValueComp&&>)
             : comp_{std::move(comp)} {  }
 
             // Construct from ValueComp and alloc
-            template <urlicht::concepts::allocator Alloc, urlicht::concepts::can_construct<value_compare> ValueComp>
-            requires uses_allocator_<Alloc>
+            template <urlicht::concepts::allocator Alloc, typename ValueComp>
+            requires uses_allocator_<Alloc> &&
+                     std::constructible_from<value_compare, ValueComp>
             explicit constexpr d_ary_heap_base_(ValueComp comp, const Alloc& alloc)
             : container_{std::make_obj_using_allocator<container_type>(alloc)},
               comp_{std::move(comp)},
@@ -685,9 +688,9 @@ namespace urlicht::container {
 
             // Enables direct construction of container_ from rng, which is likely more efficient.
             // This is possible for immutable-unstable heap only, where value_type == stored_type_.
-            template <urlicht::concepts::compatible_range<value_type> Rng,
-                      urlicht::concepts::can_construct<value_compare> ValueComp = value_compare>
-            requires (!is_mutable()) && (!is_stable()) && std::constructible_from<container_type, Rng&&>
+            template <urlicht::concepts::compatible_range<value_type> Rng, typename ValueComp = value_compare>
+            requires (!is_mutable()) && (!is_stable()) && std::constructible_from<container_type, Rng&&> &&
+                     std::constructible_from<value_compare, ValueComp>
             constexpr d_ary_heap_base_(Rng&& rng, ValueComp comp = ValueComp{})
             : container_{std::forward<Rng>(rng)},
               comp_{std::move(comp)} {
@@ -695,8 +698,7 @@ namespace urlicht::container {
             }
 
             // Direct construction of container_ from rng and alloc
-            template <urlicht::concepts::compatible_range<value_type> Rng,
-                      urlicht::concepts::allocator Alloc>
+            template <urlicht::concepts::compatible_range<value_type> Rng, urlicht::concepts::allocator Alloc>
             requires uses_allocator_<Alloc> && (!is_mutable()) && (!is_stable()) &&
                      must_make_obj_using_allocator_<container_type, Alloc, Rng&&>
             constexpr d_ary_heap_base_(Rng&& rng, const Alloc& alloc)
@@ -708,10 +710,11 @@ namespace urlicht::container {
             }
 
             template <urlicht::concepts::compatible_range<value_type> Rng,
-                      urlicht::concepts::can_construct<value_compare> ValueComp,
+                      typename ValueComp,
                       urlicht::concepts::allocator Alloc>
             requires uses_allocator_<Alloc> && (!is_mutable()) && (!is_stable()) &&
-                     must_make_obj_using_allocator_<container_type, Alloc, Rng&&>
+                     must_make_obj_using_allocator_<container_type, Alloc, Rng&&> &&
+                     std::constructible_from<value_compare, ValueComp>
             constexpr d_ary_heap_base_(Rng&& rng, ValueComp comp, const Alloc& alloc)
             : container_{std::make_obj_using_allocator<container_type>(alloc, std::forward<Rng>(rng))},
               comp_{std::move(comp)},
@@ -722,10 +725,10 @@ namespace urlicht::container {
             }
 
             // Indirect construction from rng
-            template <urlicht::concepts::compatible_range<value_type> Rng,
-                      urlicht::concepts::can_construct<value_compare> ValueComp = value_compare>
+            template <urlicht::concepts::compatible_range<value_type> Rng, typename ValueComp = value_compare>
             requires std::ranges::forward_range<Rng> &&
-                     (is_mutable() || is_stable() || (!std::constructible_from<container_type, Rng&&>))
+                     (is_mutable() || is_stable() || (!std::constructible_from<container_type, Rng&&>)) &&
+                     std::constructible_from<value_compare, ValueComp>
             explicit constexpr d_ary_heap_base_(Rng&& rng, ValueComp comp = ValueComp{})
             : comp_{std::move(comp)} {
                 container_append_range_(std::forward<Rng>(rng));
@@ -733,8 +736,7 @@ namespace urlicht::container {
             }
 
             // Indirect construction from rng and alloc
-            template <urlicht::concepts::compatible_range<value_type> Rng,
-                      urlicht::concepts::allocator Alloc>
+            template <urlicht::concepts::compatible_range<value_type> Rng, urlicht::concepts::allocator Alloc>
             requires uses_allocator_<Alloc> && std::ranges::forward_range<Rng> &&
                     (is_mutable() || is_stable() ||
                      (!must_make_obj_using_allocator_<container_type, Alloc, Rng&&>))
@@ -745,11 +747,12 @@ namespace urlicht::container {
             }
 
             template <urlicht::concepts::compatible_range<value_type> Rng,
-                      urlicht::concepts::can_construct<value_compare> ValueComp,
+                      typename ValueComp,
                       urlicht::concepts::allocator Alloc>
             requires uses_allocator_<Alloc> && std::ranges::forward_range<Rng> &&
                      (is_mutable() || is_stable() ||
-                     (!must_make_obj_using_allocator_<container_type, Alloc, Rng&&>))
+                     (!must_make_obj_using_allocator_<container_type, Alloc, Rng&&>)) &&
+                     std::constructible_from<value_compare, ValueComp>
             constexpr d_ary_heap_base_(Rng&& rng, ValueComp comp, const Alloc& alloc)
             : d_ary_heap_base_(comp, alloc) {
                 container_append_range_(std::forward<Rng>(rng));
@@ -757,9 +760,9 @@ namespace urlicht::container {
             }
 
             // Direct construction from heapified rng
-            template <urlicht::concepts::compatible_range<value_type> Rng,
-                      urlicht::concepts::can_construct<value_compare> ValueComp = value_compare>
-            requires (!is_mutable()) && (!is_stable()) && std::constructible_from<container_type, Rng&&>
+            template <urlicht::concepts::compatible_range<value_type> Rng, typename ValueComp = value_compare>
+            requires (!is_mutable()) && (!is_stable()) && std::constructible_from<container_type, Rng&&> &&
+                     std::constructible_from<value_compare, ValueComp>
             constexpr d_ary_heap_base_(urlicht::internal::heapified_t, Rng&& rng, ValueComp comp = ValueComp{})
             : container_{std::forward<Rng>(rng)},
               comp_{std::move(comp)} {
@@ -767,8 +770,7 @@ namespace urlicht::container {
             }
 
             // Direct construction from heapified rng and alloc
-            template <urlicht::concepts::compatible_range<value_type> Rng,
-                      urlicht::concepts::allocator Alloc>
+            template <urlicht::concepts::compatible_range<value_type> Rng, urlicht::concepts::allocator Alloc>
             requires uses_allocator_<Alloc> && (!is_mutable()) && (!is_stable()) &&
                      must_make_obj_using_allocator_<container_type, Alloc, Rng&&>
             constexpr d_ary_heap_base_(urlicht::internal::heapified_t, Rng&& rng,
@@ -781,10 +783,11 @@ namespace urlicht::container {
             }
 
             template <urlicht::concepts::compatible_range<value_type> Rng,
-                      urlicht::concepts::can_construct<value_compare> ValueComp,
+                      typename ValueComp,
                       urlicht::concepts::allocator Alloc>
             requires uses_allocator_<Alloc> && (!is_mutable()) && (!is_stable()) &&
-                     must_make_obj_using_allocator_<container_type, Alloc, Rng&&>
+                     must_make_obj_using_allocator_<container_type, Alloc, Rng&&> &&
+                     std::constructible_from<value_compare, ValueComp>
             constexpr d_ary_heap_base_(urlicht::internal::heapified_t, Rng&& rng,
                                        ValueComp comp, const Alloc& alloc)
             : container_{std::make_obj_using_allocator<container_type>(alloc, std::forward<Rng>(rng))},
@@ -796,9 +799,9 @@ namespace urlicht::container {
             }
 
             // Indirect construction from heapified rng
-            template <urlicht::concepts::compatible_range<value_type> Rng,
-                      urlicht::concepts::can_construct<value_compare> ValueComp = value_compare>
-            requires (is_mutable() || is_stable() || (!std::constructible_from<container_type, Rng&&>))
+            template <urlicht::concepts::compatible_range<value_type> Rng, typename ValueComp = value_compare>
+            requires (is_mutable() || is_stable() || (!std::constructible_from<container_type, Rng&&>)) &&
+                     std::constructible_from<value_compare, ValueComp>
             constexpr d_ary_heap_base_(urlicht::internal::heapified_t, Rng&& rng, ValueComp comp = ValueComp{})
             : comp_{std::move(comp)} {
                 UL_ASSERT(is_d_ary_heapified_<arity()>(rng, value_comp()), "The given range is not heapified.");
@@ -806,8 +809,7 @@ namespace urlicht::container {
             }
 
             // Indirect construction from heapified rng and alloc
-            template <urlicht::concepts::compatible_range<value_type> Rng,
-                     urlicht::concepts::allocator Alloc>
+            template <urlicht::concepts::compatible_range<value_type> Rng, urlicht::concepts::allocator Alloc>
             requires uses_allocator_<Alloc> && (is_mutable() || is_stable() ||
                    (!must_make_obj_using_allocator_<container_type, Alloc, Rng&&>))
             constexpr d_ary_heap_base_(urlicht::internal::heapified_t, Rng&& rng,
@@ -818,10 +820,11 @@ namespace urlicht::container {
             }
 
             template <urlicht::concepts::compatible_range<value_type> Rng,
-                     urlicht::concepts::can_construct<value_compare> ValueComp,
+                     typename ValueComp,
                      urlicht::concepts::allocator Alloc>
             requires uses_allocator_<Alloc> && (is_mutable() || is_stable() ||
-                   (!must_make_obj_using_allocator_<container_type, Alloc, Rng&&>))
+                   (!must_make_obj_using_allocator_<container_type, Alloc, Rng&&>)) &&
+                     std::constructible_from<value_compare, ValueComp>
             constexpr d_ary_heap_base_(urlicht::internal::heapified_t, Rng&& rng,
                                       ValueComp comp, const Alloc& alloc)
             : d_ary_heap_base_(comp, alloc) {
@@ -830,7 +833,8 @@ namespace urlicht::container {
             }
 
             // [Indirect] Construction from initializer_list
-            template <urlicht::concepts::can_construct<value_compare> ValueComp = value_compare>
+            template <typename ValueComp = value_compare>
+            requires std::constructible_from<value_compare, ValueComp>
             constexpr d_ary_heap_base_(std::initializer_list<value_type> il, ValueComp comp = ValueComp{})
             : comp_{std::move(comp)} {
                 container_append_range_(il);
@@ -846,8 +850,9 @@ namespace urlicht::container {
                 this->build_heap_();
             }
 
-            template <urlicht::concepts::can_construct<value_compare> ValueComp, urlicht::concepts::allocator Alloc>
-            requires uses_allocator_<Alloc>
+            template <typename ValueComp, urlicht::concepts::allocator Alloc>
+            requires uses_allocator_<Alloc> &&
+                     std::constructible_from<value_compare, ValueComp>
             constexpr d_ary_heap_base_(std::initializer_list<value_type> il, ValueComp comp, const Alloc& alloc)
             : d_ary_heap_base_(comp, alloc) {
                 container_append_range_(il);
@@ -855,7 +860,8 @@ namespace urlicht::container {
             }
 
             // [Indirect] Construction from heapified initializer list
-            template <urlicht::concepts::can_construct<value_compare> ValueComp = value_compare>
+            template <typename ValueComp = value_compare>
+            requires std::constructible_from<value_compare, ValueComp>
             constexpr d_ary_heap_base_(urlicht::internal::heapified_t, std::initializer_list<value_type> il,
                                        ValueComp comp = ValueComp{})
             : comp_{std::move(comp)} {
@@ -873,8 +879,9 @@ namespace urlicht::container {
                 container_append_range_(il);
             }
 
-            template <urlicht::concepts::can_construct<value_compare> ValueComp, urlicht::concepts::allocator Alloc>
-            requires uses_allocator_<Alloc>
+            template <typename ValueComp, urlicht::concepts::allocator Alloc>
+            requires uses_allocator_<Alloc> &&
+                     std::constructible_from<value_compare, ValueComp>
             constexpr d_ary_heap_base_(urlicht::internal::heapified_t, std::initializer_list<value_type> il,
                                        ValueComp comp, const Alloc& alloc)
             : d_ary_heap_base_(comp, alloc) {

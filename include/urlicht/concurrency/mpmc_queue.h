@@ -185,8 +185,9 @@ namespace urlicht::concurrency {
             }
         }
 
-        template <urlicht::concepts::can_construct<allocator_type> Alloc_ = allocator_type>
-        requires (!detail::is_capacity_<Policy>::value)
+        template <typename Alloc_ = allocator_type>
+        requires (!detail::is_capacity_<Policy>::value) &&
+                 std::constructible_from<allocator_type, const Alloc_&>
         mpmc_queue(const std::uint64_t capacity, const Alloc_& alloc = Alloc_{})
         : buffer_type_(capacity, alloc) {
             for (std::uint64_t idx = 0; idx < this->capacity(); ++idx) {

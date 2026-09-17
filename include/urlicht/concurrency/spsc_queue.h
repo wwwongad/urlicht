@@ -59,7 +59,8 @@ namespace urlicht::concurrency {
 
             constexpr spsc_runtime_sized_buffer_() noexcept = delete;  // Must provide init size
 
-            template <urlicht::concepts::can_construct<allocator_type> Alloc = allocator_type>
+            template <typename Alloc = allocator_type>
+            requires std::constructible_from<allocator_type, const Alloc&>
             constexpr spsc_runtime_sized_buffer_(const std::uint64_t capacity, const Alloc& alloc = Alloc{})
             : capacity_{capacity}, alloc_{alloc}, buffer_{allocator_traits::allocate(alloc_, capacity_)} {
                 if (!std::has_single_bit(capacity_)) [[unlikely]] {

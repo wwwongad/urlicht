@@ -20,10 +20,6 @@ namespace urlicht::concepts {
 	template <typename T>
 	concept trivial = std::is_trivial_v<T>;
 
-	// can_construct<T> U -> T is constructible from U
-	template <typename From, typename To>
-	concept can_construct = std::constructible_from<To, From&&>;
-
 	// Checks if a type can be copy assigned by memcpy
 	// Note that std::is_trivially_copyable_v being true does not imply memcpy copy-assignable
 	// For example, the copy assignment operator may be deleted.

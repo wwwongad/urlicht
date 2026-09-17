@@ -247,7 +247,8 @@ namespace urlicht::container {
                          detail::range_end(std::forward<Rng>(rng))) { }
 
         // Initializer list constructor
-        template <urlicht::concepts::can_construct<value_type> VTy>
+        template <typename VTy>
+        requires std::constructible_from<value_type, const VTy&>
         constexpr inplace_vector(std::initializer_list<VTy> init)
         : inplace_vector(init.begin(), init.end()) { }
 
@@ -1008,8 +1009,9 @@ namespace urlicht::container {
          * @throws _ Any exceptions thrown during the move construction/assignment of elements in gap creation.
          *         Basic exception guarantee only.
          */
-        template <urlicht::concepts::can_construct<value_type> VTy>
-        requires std::is_move_assignable_v<value_type>
+        template <typename VTy>
+        requires std::is_move_assignable_v<value_type> &&
+                 std::constructible_from<value_type, const VTy&>
         constexpr iterator insert(const_iterator cpos, std::initializer_list<VTy> il) {
             return this->insert(cpos, il.begin(), il.end());
         }
