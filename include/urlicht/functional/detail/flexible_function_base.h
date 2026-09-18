@@ -219,7 +219,7 @@ namespace urlicht::functional::detail {
         }
 
         // Data members
-        storage_t_ storage_  UL_INDETERMINATE;
+        storage_t_ storage_;
         const vtable_t_* vtable_{};
         UL_NO_UNIQUE_ADDRESS allocator_type_ alloc_{};
 

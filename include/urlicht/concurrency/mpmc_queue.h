@@ -69,7 +69,7 @@ namespace urlicht::concurrency {
             constexpr const auto& turn() const noexcept { return this->turn_; }
         private:
             alignas(cacheline_size_) std::atomic<std::uint64_t> turn_{};
-            alignas(alignof(T)) std::byte data_[sizeof(T)] UL_INDETERMINATE;
+            alignas(alignof(T)) std::byte data_[sizeof(T)];
         };
 
         template <typename T, std::uint64_t Capacity>
@@ -96,7 +96,7 @@ namespace urlicht::concurrency {
             }
 
             // Data member
-            alignas(alignof(mpmc_slot_<T>)) std::byte slots_[Capacity * sizeof(mpmc_slot_<T>)] UL_INDETERMINATE;
+            alignas(alignof(mpmc_slot_<T>)) std::byte slots_[Capacity * sizeof(mpmc_slot_<T>)];
         };
 
         template <typename T, typename Alloc>
