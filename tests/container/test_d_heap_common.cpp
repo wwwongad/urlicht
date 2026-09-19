@@ -55,6 +55,29 @@ std::vector<std::string> make_unique_data(const size_t n = 100) {
     return res;
 }
 
+template <typename Heap>
+std::vector<std::string> make_heapified_data(std::vector<std::string> data) {
+    std::vector<std::string> heapified;
+    heapified.reserve(data.size());
+    const Comp comp{0};
+
+    for (auto& value : data) {
+        heapified.push_back(std::move(value));
+        auto index = heapified.size() - 1;
+
+        while (index != 0U) {
+            const auto parent = (index - 1) / Heap::arity();
+            if (!comp(heapified[parent], heapified[index])) {
+                break;
+            }
+            std::swap(heapified[parent], heapified[index]);
+            index = parent;
+        }
+    }
+
+    return heapified;
+}
+
 template <typename HeapType>
 class DAryHeapCommon : public testing::Test {
 protected:
@@ -69,8 +92,9 @@ using heap2_t = urlicht::container::d_ary_heap<std::string, std::vector, Comp, {
 using heap3_t = urlicht::container::d_ary_heap<std::string, std::vector, Comp, {.mutable_ = true}>; // pair<T, Id>
 using heap4_t = // pair<pair<T, Counter>, Id>
     urlicht::container::d_ary_heap<std::string, std::vector, Comp, {.mutable_ = true, .stable = true}>;
+using heap5_t = urlicht::container::d_ary_heap<std::string, std::vector, Comp, {.arity = 2}>;
 
-using heap_types = testing::Types<heap1_t, heap2_t, heap3_t, heap4_t>;
+using heap_types = testing::Types<heap1_t, heap2_t, heap3_t, heap4_t, heap5_t>;
 
 TYPED_TEST_SUITE(DAryHeapCommon, heap_types);
 
@@ -104,18 +128,19 @@ TYPED_TEST(DAryHeapCommon, ConstructFromRange) {
 }
 
 TYPED_TEST(DAryHeapCommon, ConstructFromHeapifiedRange) {
-    // Heapify str_vec
-    std::ranges::sort(this->str_vec, Comp{0});
-    std::ranges::reverse(this->str_vec);
+    const auto heapified_data = make_heapified_data<TypeParam>(this->str_vec);
 
-    TypeParam heap{urlicht::heapified, this->str_vec, 0};
+    TypeParam heap{urlicht::heapified, heapified_data, 0};
     EXPECT_TRUE(is_d_ary_heapified(heap));
     EXPECT_TRUE(is_heap_of(heap, this->str_vec));
+    EXPECT_TRUE(std::ranges::equal(heap, heapified_data));
 
-    // Initializer list
-    TypeParam heap2{urlicht::heapified, {"999", "123", "456", "654", "321"}, 1};
+    const std::vector<std::string> initializer = {"999", "123", "456", "654", "321"};
+    const auto heapified_initializer = make_heapified_data<TypeParam>(initializer);
+    TypeParam heap2{urlicht::heapified, heapified_initializer, 1};
     EXPECT_TRUE(is_d_ary_heapified(heap2));
-    EXPECT_TRUE(is_heap_of(heap2, {"999", "123", "456", "654", "321"}));
+    EXPECT_TRUE(is_heap_of(heap2, initializer));
+    EXPECT_TRUE(std::ranges::equal(heap2, heapified_initializer));
 }
 
 template <typename Heap>
