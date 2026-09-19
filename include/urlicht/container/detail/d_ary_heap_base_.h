@@ -518,48 +518,83 @@ namespace urlicht::container {
                 }
             }
 
-            template <bool IsFullTree = false>
+            template <bool IsFullTree = false, bool UseFloyd = false>
             constexpr void heapify_down_(size_type idx, const size_type sift_down_size) {
-                stored_type_ top_elem = std::move(container_[idx]);
-                while (true) {
-                    auto child_idx = static_cast<size_type>(idx * arity() + 2);  // Second children (Arity > 1)
-                    auto largest_child = child_idx - 1;
 
-                    // Check the current node is not a leaf
-                    if (largest_child >= sift_down_size) [[unlikely]] {
-                        break;
-                    }
-                    size_type last_child_idx;
-                    if constexpr (IsFullTree) {
-                        last_child_idx = idx * arity() + arity();
-                    } else {
-                        last_child_idx = std::min(idx * arity() + arity(), sift_down_size - 1);
-                    }
-                    while (child_idx <= last_child_idx) {
-                        /*
-                        if (std::invoke(comp_, container_[largest_child], container_[child_idx])) {
-                            largest_child = child_idx;
-                        }
-                        */
-                        // Branchless version:
-                        largest_child +=
-                            (child_idx - largest_child) &
-                            -static_cast<size_type>(
-                                std::invoke(comp_, container_[largest_child], container_[child_idx])
+                [[maybe_unused]] const auto start = idx;
+                stored_type_ top_elem = std::move(container_[idx]);
+                if constexpr (arity() == 2) {
+                    const auto parent_count = sift_down_size / arity();
+                    while (idx < parent_count) {
+                        auto child = static_cast<size_type>(idx * 2 + 1);
+                        if (child + 1 < sift_down_size) {
+                            child += static_cast<size_type>(
+                                std::invoke(comp_, container_[child], container_[child + 1])
                             );
-                        ++child_idx;
+                        }
+                        if constexpr (!UseFloyd) { // Enable early exit
+                            if (!std::invoke(comp_, top_elem, container_[child])) {
+                                break;
+                            }
+                        }
+                        relocate_to_(std::move(container_[child]), idx);
+                        idx = child;
                     }
-                    if (!std::invoke(comp_, top_elem, container_[largest_child])) {
-                        break;
+                    if constexpr (UseFloyd) {
+                        while (idx > start) {
+                            const auto parent = static_cast<size_type>((idx - 1) / 2);
+                            if (!std::invoke(comp_, container_[parent], top_elem)) {
+                                break;
+                            }
+                            relocate_to_(std::move(container_[parent]), idx);
+                            idx = parent;
+                        }
                     }
-                    relocate_to_(std::move(container_[largest_child]), idx);
-                    idx = largest_child;
+                } else /* arity() > 2 */ {
+                    const auto parent_count = (sift_down_size + arity() - 2) / arity();
+                    while (idx < parent_count) {
+                        auto child_idx = static_cast<size_type>(idx * arity() + 2); // The second child
+                        auto largest_child = child_idx - 1;
+
+                        size_type last_child_idx;
+                        if constexpr (IsFullTree) {
+                            last_child_idx = idx * arity() + arity();
+                        } else {
+                            last_child_idx = std::min(idx * arity() + arity(), sift_down_size - 1);
+                        }
+
+                        while (child_idx <= last_child_idx) {
+                            largest_child +=
+                                (child_idx - largest_child) &
+                                -static_cast<size_type>(
+                                    std::invoke(comp_, container_[largest_child], container_[child_idx])
+                                );
+                            ++child_idx;
+                        }
+                        if constexpr (!UseFloyd) {
+                            if (!std::invoke(comp_, top_elem, container_[largest_child])) {
+                                break;
+                            }
+                        }
+                        relocate_to_(std::move(container_[largest_child]), idx);
+                        idx = largest_child;
+                    }
+                    if constexpr (UseFloyd) {
+                        while (idx > start) {
+                            const auto parent = static_cast<size_type>((idx - 1) / arity());
+                            if (!std::invoke(comp_, container_[parent], top_elem)) {
+                                break;
+                            }
+                            relocate_to_(std::move(container_[parent]), idx);
+                            idx = parent;
+                        }
+                    }
                 }
                 relocate_to_(std::move(top_elem), idx);
             }
 
             constexpr void heapify_down_(size_type idx) {
-                heapify_down_<false>(idx, container_.size());
+                heapify_down_<false, false>(idx, container_.size());
             }
 
             constexpr void build_heap_() {
@@ -577,7 +612,7 @@ namespace urlicht::container {
 
                     if (sift_down_size > 1) [[likely]] {
                         for (size_type start = (sift_down_size - 2) / arity() + 1; start > 0; --start) {
-                            heapify_down_<to_truncate>(start - 1, sift_down_size);
+                            heapify_down_<to_truncate, false>(start - 1, sift_down_size);
                         }
                     }
                     if constexpr (to_truncate) {
@@ -980,6 +1015,7 @@ namespace urlicht::container {
             // As per C++26 STL convention, we provide three overloads (unchecked/try/{checked})
             // for member functions with preconditions.
 
+            template <bool UseFloyd = false>
             constexpr void unchecked_pop() {
                 UL_ASSERT(!empty(), "The heap is empty");
                 auto clear_guard = urlicht::scope::make_scope_exit([this]() noexcept { this->clear(); });
@@ -990,23 +1026,25 @@ namespace urlicht::container {
                 if (size() > 1) [[likely]] {
                     relocate_to_(std::move(container_.back()), 0U);
                     container_.pop_back();
-                    heapify_down_(0U);
+                    heapify_down_<false, UseFloyd>(0U, container_.size());
                 } else {
                     container_.pop_back();
                 }
                 clear_guard.release();
             }
 
+            template <bool UseFloyd = false>
             constexpr bool try_pop() {
                 if (empty()) [[unlikely]] {
                     return false;
                 }
-                unchecked_pop();
+                unchecked_pop<UseFloyd>();
                 return true;
             }
 
+            template <bool UseFloyd = false>
             constexpr void pop() {
-                if (!try_pop()) [[unlikely]] {
+                if (!try_pop<UseFloyd>()) [[unlikely]] {
                     throw std::out_of_range{"urlicht::container::d_ary_heap::pop(): the heap is empty"};
                 }
             }
@@ -1202,7 +1240,7 @@ namespace urlicht::container {
                     *o_it++ = std::move(value_of_(container_.front()));
                     relocate_to_(std::move(container_[back_idx]), 0U);
                     --back_idx;
-                    heapify_down_(0U, back_idx + 1);
+                    heapify_down_<false, false>(0U, back_idx + 1);
                 }
                 *o_it++ = std::move(value_of_(container_.front()));
                 container_.clear();
