@@ -58,7 +58,7 @@ function(urlicht_configure_benchmark target)
     endif()
 endfunction()
 
-add_executable(urlicht_benchmark container/bm_mutable_heap.cpp)
+add_executable(urlicht_benchmark ${URLICHT_BENCHMARK_SOURCES})
 
 target_link_libraries(urlicht_benchmark PRIVATE benchmark::benchmark_main)
 

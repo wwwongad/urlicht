@@ -104,24 +104,24 @@ static void BM_Counter_Mixed_Workload(benchmark::State& state) {
 }
 
 BENCHMARK_TEMPLATE(BM_Counter_Increment, AtomicCounter)
-    ->Range(8, 1024)->UseRealTime()->Name("atomic_size_t/increment")
+    ->Range(8, 1024)->UseRealTime()->Name("concurrency/sharded_counter/std/increment")
     ->Repetitions(10)->ReportAggregatesOnly(true);
 BENCHMARK_TEMPLATE(BM_Counter_Increment, ApproxShardedCounter<>)
-    ->Range(8, 1024)->UseRealTime()->Name("static_sharded_counter/increment/8local")
+    ->Range(8, 1024)->UseRealTime()->Name("concurrency/sharded_counter/urlicht/increment/local_8")
     ->Repetitions(10)->ReportAggregatesOnly(true);
 BENCHMARK_TEMPLATE(BM_Counter_Increment, ApproxShardedCounter<1024, 64>)
-    ->Range(8, 1024)->UseRealTime()->Name("static_sharded_counter/increment/64local")
+    ->Range(8, 1024)->UseRealTime()->Name("concurrency/sharded_counter/urlicht/increment/local_64")
     ->Repetitions(10)->ReportAggregatesOnly(true);
 
 BENCHMARK_TEMPLATE(BM_Counter_Mixed_Workload, AtomicCounter)
-    ->Range(8, 1024)->UseRealTime()->Name("atomic_size_t/readwrite")
+    ->Range(8, 1024)->UseRealTime()->Name("concurrency/sharded_counter/std/readwrite")
     ->Repetitions(10)->ReportAggregatesOnly(true);
 BENCHMARK_TEMPLATE(BM_Counter_Mixed_Workload, ExactShardedCounter<>)
-    ->Range(8, 1024)->UseRealTime()->Name("static_sharded_counter/exact/readwrite/8local")
+    ->Range(8, 1024)->UseRealTime()->Name("concurrency/sharded_counter/urlicht/exact/readwrite/local_8")
     ->Repetitions(10)->ReportAggregatesOnly(true);
 BENCHMARK_TEMPLATE(BM_Counter_Mixed_Workload, ApproxShardedCounter<>)
-    ->Range(8, 1024)->UseRealTime()->Name("static_sharded_counter/approx/readwrite/8local")
+    ->Range(8, 1024)->UseRealTime()->Name("concurrency/sharded_counter/urlicht/approx/readwrite/local_8")
     ->Repetitions(10)->ReportAggregatesOnly(true);
 BENCHMARK_TEMPLATE(BM_Counter_Mixed_Workload, ApproxShardedCounter<1024, 1024>)
-    ->Range(8, 1024)->UseRealTime()->Name("static_sharded_counter/approx/readwrite/64local")
+    ->Range(8, 1024)->UseRealTime()->Name("concurrency/sharded_counter/urlicht/approx/readwrite/local_64")
     ->Repetitions(10)->ReportAggregatesOnly(true);

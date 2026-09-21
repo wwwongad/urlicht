@@ -127,11 +127,11 @@ static void BM_urlicht_mutable_heap(benchmark::State& st) {
 }
 
 BENCHMARK_TEMPLATE(BM_urlicht_mutable_heap, urlicht_mutable_heap_no_reuse)->Range(1 << 10, 1 << 20)
-    ->Name("urlicht::d_ary_heap/no_reuse")
+    ->Name("container/mutable_heap/urlicht/no_reuse")
     ->Repetitions(10)->ReportAggregatesOnly(true);
 
 BENCHMARK_TEMPLATE(BM_urlicht_mutable_heap, urlicht_mutable_heap_reuse)->Range(1 << 10, 1 << 20)
-    ->Name("urlicht::d_ary_heap/reuse_id")
+    ->Name("container/mutable_heap/urlicht/reuse_id")
     ->Repetitions(10)->ReportAggregatesOnly(true);
 
 #if URLICHT_BM_HAS_BOOST
@@ -142,18 +142,18 @@ using boost_mutable_heap =
         boost::heap::mutable_<true>,
         boost::heap::compare<std::greater<>>
     >;
-using boost_handle = boost_mutable_heap::handle_type;
 
 static void BM_boost_mutable_heap(benchmark::State& st) {
     const auto n = st.range(0);
     const graph_t graph = make_random_graph(n);
+    using handle_t = boost_mutable_heap::handle_type;
 
     for (auto _ : st) {
         std::vector dist(n, INF);
         dist[SRC_VERTEX] = 0.0;
 
         std::vector<char> in_heap(n, 0);
-        std::vector<boost_handle> handles(n);
+        std::vector<handle_t> handles(n);
 
         boost_mutable_heap heap;
         heap.reserve(n);
@@ -185,6 +185,6 @@ static void BM_boost_mutable_heap(benchmark::State& st) {
 }
 
 BENCHMARK(BM_boost_mutable_heap)->Range(1 << 10, 1 << 20)
-    ->Name("boost::d_ary_heap")->Repetitions(10)->ReportAggregatesOnly(true);
+    ->Name("container/mutable_heap/boost")->Repetitions(10)->ReportAggregatesOnly(true);
 #endif
 

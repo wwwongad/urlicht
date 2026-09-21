@@ -78,13 +78,13 @@ static void BM_Arena_HotPath(benchmark::State& state) {
 }
 
 BENCHMARK_TEMPLATE(BM_Arena_HotPath, UrlichtArenaWrapper<>)->Arg(8)->Arg(32)
-    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("HotPath/Urlicht");
+    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("memory/arena/hot_path/urlicht");
 
 BENCHMARK_TEMPLATE(BM_Arena_HotPath, UrlichtArenaWrapper<true>)->Arg(8)->Arg(32)
-    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("HotPath/UrlichtUnsafe");
+    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("memory/arena/hot_path/urlicht_unsafe");
 
 BENCHMARK_TEMPLATE(BM_Arena_HotPath, STDMonotonicWrapper)->Arg(8)->Arg(32)
-    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("HotPath/StdMonotonic");
+    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("memory/arena/hot_path/std_monotonic");
 
 // ============================================================================
 // BENCHMARK: FRAME LOOP
@@ -124,13 +124,13 @@ static void BM_STDMonotonic_FrameLoop(benchmark::State& state) {
 }
 
 BENCHMARK_TEMPLATE(BM_UrlichtArena_FrameLoop, false)->Arg(16)->Arg(128)->Arg(1024)
-    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("FrameLoop/Urlicht");
+    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("memory/arena/frame_loop/urlicht");
 
 BENCHMARK_TEMPLATE(BM_UrlichtArena_FrameLoop, true)->Arg(16)->Arg(128)->Arg(1024)
-    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("FrameLoop/UrlichtUnsafe");
+    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("memory/arena/frame_loop/urlicht_unsafe");
 
 BENCHMARK(BM_STDMonotonic_FrameLoop)->Arg(16)->Arg(128)->Arg(1024)
-    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("FrameLoop/StdMonotonic");
+    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("memory/arena/frame_loop/std_monotonic");
 
 // ============================================================================
 // BENCHMARK: SPILLOVER
@@ -142,7 +142,7 @@ static void BM_Arena_Spillover(benchmark::State& state) {
     const size_t block_size = 128u;
 
     for (auto _ : state) {
-        Wrapper arena(0u);
+        Wrapper arena(1024u);
 
         size_t allocated = 0;
         while (allocated < alloc_size) {
@@ -155,10 +155,10 @@ static void BM_Arena_Spillover(benchmark::State& state) {
 }
 
 BENCHMARK_TEMPLATE(BM_Arena_Spillover, UrlichtArenaWrapper<>)->Range(MB, 128 * MB)
-    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("Spillover/Urlicht");
+    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("memory/arena/spillover/urlicht");
 
 BENCHMARK_TEMPLATE(BM_Arena_Spillover, STDMonotonicWrapper)->Range(MB, 128 * MB)
-    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("Spillover/StdMonotonic");
+    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("memory/arena/spillover/std_monotonic");
 
 // ============================================================================
 // BENCHMARK: NODE BURST (std::map)
@@ -195,10 +195,10 @@ static void BM_STDMonotonic_NodeBurst(benchmark::State& state) {
 }
 
 BENCHMARK(BM_UrlichtArena_NodeBurst)->Range(1024, 100 * 1024)
-    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("NodeBurst/Urlicht");
+    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("memory/arena/node_burst/urlicht");
 
 BENCHMARK(BM_STDMonotonic_NodeBurst)->Range(1024, 100 * 1024)
-    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("NodeBurst/StdMonotonic");
+    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("memory/arena/node_burst/std_monotonic");
 
 // ============================================================================
 // NEW BENCHMARK: SUDDEN LARGE ALLOCATION
@@ -225,10 +225,10 @@ static void BM_SuddenLargeAlloc(benchmark::State& state) {
 }
 
 BENCHMARK_TEMPLATE(BM_SuddenLargeAlloc, UrlichtArenaWrapper<>)->Range(MB, 64 * MB)
-    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("SuddenLargeAlloc/Urlicht");
+    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("memory/arena/sudden_large_alloc/urlicht");
 
 BENCHMARK_TEMPLATE(BM_SuddenLargeAlloc, STDMonotonicWrapper)->Range(MB, 64 * MB)
-    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("SuddenLargeAlloc/StdMonotonic");
+    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("memory/arena/sudden_large_alloc/std_monotonic");
 
 // ============================================================================
 // BENCHMARK: CACHE LOCALITY (Iteration Speed)
@@ -288,14 +288,14 @@ static void BM_Scenario_CacheLocality(benchmark::State& st) {
 }
 
 BENCHMARK_TEMPLATE(BM_Scenario_CacheLocality, CacheLocality_STDAlloc)
-    ->Name("Locality/StdAlloc")->ReportAggregatesOnly(true)
+    ->Name("memory/arena/locality/std_alloc")->ReportAggregatesOnly(true)
     ->Range(1024, 1024 * 256)->Repetitions(10);
 
 BENCHMARK_TEMPLATE(BM_Scenario_CacheLocality, CacheLocality_PMR_Monotonic)
-    ->Name("Locality/StdMonotonic")->ReportAggregatesOnly(true)
+    ->Name("memory/arena/locality/std_monotonic")->ReportAggregatesOnly(true)
     ->Range(1024, 1024 * 256)->Repetitions(10);
 
 BENCHMARK_TEMPLATE(BM_Scenario_CacheLocality, CacheLocality_UrlichtArena)
-    ->Name("Locality/Urlicht")->ReportAggregatesOnly(true)
+    ->Name("memory/arena/locality/urlicht")->ReportAggregatesOnly(true)
     ->Range(1024, 1024 * 256)->Repetitions(10);
 

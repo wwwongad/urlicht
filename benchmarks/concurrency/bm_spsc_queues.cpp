@@ -292,72 +292,72 @@ void BM_spsc_roundtrip(benchmark::State& st) {
 
 // Throughput
 BENCHMARK_TEMPLATE(BM_spsc_throughput, mutex_queue, value_type1, queue_size)
-    ->Name("mutex_queue/throughput/int")
+    ->Name("concurrency/spsc/mutex/throughput/int")
     ->UseRealTime()->Repetitions(10)->ReportAggregatesOnly(true);
 BENCHMARK_TEMPLATE(BM_spsc_throughput, mutex_queue, value_type2, queue_size)
-    ->Name("mutex_queue/throughput/info_t")
+    ->Name("concurrency/spsc/mutex/throughput/info_t")
     ->UseRealTime()->Repetitions(10)->ReportAggregatesOnly(true);
 
 BENCHMARK_TEMPLATE(BM_spsc_throughput, rigtorp_spsc_queue, value_type1, queue_size)
-    ->Name("rigtorp/throughput/int")
+    ->Name("concurrency/spsc/rigtorp/throughput/int")
     ->UseRealTime()->Repetitions(10)->ReportAggregatesOnly(true);
 BENCHMARK_TEMPLATE(BM_spsc_throughput, rigtorp_spsc_queue, value_type2, queue_size)
-    ->Name("rigtorp/throughput/info_t")
+    ->Name("concurrency/spsc/rigtorp/throughput/info_t")
     ->UseRealTime()->Repetitions(10)->ReportAggregatesOnly(true);
 
 #if URLICHT_BM_HAS_BOOST
 BENCHMARK_TEMPLATE(BM_spsc_throughput, boost_spsc_queue, value_type1, queue_size)
-    ->Name("boost/throughput/int")
+    ->Name("concurrency/spsc/boost/throughput/int")
     ->UseRealTime()->Repetitions(10)->ReportAggregatesOnly(true);
 BENCHMARK_TEMPLATE(BM_spsc_throughput, boost_spsc_queue, value_type2, queue_size)
-    ->Name("boost/throughput/info_t")
+    ->Name("concurrency/spsc/boost/throughput/info_t")
     ->UseRealTime()->Repetitions(10)->ReportAggregatesOnly(true);
 #endif
 
 BENCHMARK_TEMPLATE(BM_spsc_throughput, urlicht_spsc_queue, value_type1, queue_size)
-    ->Name("urlicht/throughput/int")
+    ->Name("concurrency/spsc/urlicht/throughput/int")
     ->UseRealTime()->Repetitions(10)->ReportAggregatesOnly(true);
 BENCHMARK_TEMPLATE(BM_spsc_throughput, urlicht_spsc_queue, value_type2, queue_size)
-    ->Name("urlicht/throughput/info_t")
+    ->Name("concurrency/spsc/urlicht/throughput/info_t")
     ->UseRealTime()->Repetitions(10)->ReportAggregatesOnly(true);
 
 // Bulk throughput
 #if URLICHT_BM_HAS_BOOST
 BENCHMARK_TEMPLATE(BM_spsc_bulk_throughput, boost_spsc_queue, value_type1, queue_size)
-    ->Name("boost/bulk_throughput/int")
+    ->Name("concurrency/spsc/boost/bulk_throughput/int")
     ->UseRealTime()->Repetitions(10)->ReportAggregatesOnly(true);
 BENCHMARK_TEMPLATE(BM_spsc_bulk_throughput, boost_spsc_queue, value_type2, queue_size)
-    ->Name("boost/bulk_throughput/info_t")
+    ->Name("concurrency/spsc/boost/bulk_throughput/info_t")
     ->UseRealTime()->Repetitions(10)->ReportAggregatesOnly(true);
 #endif
 
 BENCHMARK_TEMPLATE(BM_spsc_bulk_throughput, urlicht_spsc_queue, value_type1, queue_size)
-    ->Name("urlicht/bulk_throughput/int")
+    ->Name("concurrency/spsc/urlicht/bulk_throughput/int")
     ->UseRealTime()->Repetitions(10)->ReportAggregatesOnly(true);
 BENCHMARK_TEMPLATE(BM_spsc_bulk_throughput, urlicht_spsc_queue, value_type2, queue_size)
-    ->Name("urlicht/bulk_throughput/info_t")
+    ->Name("concurrency/spsc/urlicht/bulk_throughput/info_t")
     ->UseRealTime()->Repetitions(10)->ReportAggregatesOnly(true);
 
 // Roundtrip benchmarks (excludes mutex_queue)
 BENCHMARK_TEMPLATE(BM_spsc_roundtrip, rigtorp_spsc_queue, value_type1, queue_size)
-    ->Name("rigtorp/roundtrip/int")
+    ->Name("concurrency/spsc/rigtorp/roundtrip/int")
     ->UseRealTime()->Repetitions(10)->ReportAggregatesOnly(true);
 BENCHMARK_TEMPLATE(BM_spsc_roundtrip, rigtorp_spsc_queue, value_type2, queue_size)
-    ->Name("rigtorp/roundtrip/info_t")
+    ->Name("concurrency/spsc/rigtorp/roundtrip/info_t")
     ->UseRealTime()->Repetitions(10)->ReportAggregatesOnly(true);
 
 #if URLICHT_BM_HAS_BOOST
 BENCHMARK_TEMPLATE(BM_spsc_roundtrip, boost_spsc_queue, value_type1, queue_size)
-    ->Name("boost/roundtrip/int")
+    ->Name("concurrency/spsc/boost/roundtrip/int")
     ->UseRealTime()->Repetitions(10)->ReportAggregatesOnly(true);
 BENCHMARK_TEMPLATE(BM_spsc_roundtrip, boost_spsc_queue, value_type2, queue_size)
-    ->Name("boost/roundtrip/info_t")
+    ->Name("concurrency/spsc/boost/roundtrip/info_t")
     ->UseRealTime()->Repetitions(10)->ReportAggregatesOnly(true);
 #endif
 
 BENCHMARK_TEMPLATE(BM_spsc_roundtrip, urlicht_spsc_queue, value_type1, queue_size)
-    ->Name("urlicht/roundtrip/int")
+    ->Name("concurrency/spsc/urlicht/roundtrip/int")
     ->UseRealTime()->Repetitions(10)->ReportAggregatesOnly(true);
 BENCHMARK_TEMPLATE(BM_spsc_roundtrip, urlicht_spsc_queue, value_type2, queue_size)
-    ->Name("urlicht/roundtrip/info_t")
+    ->Name("concurrency/spsc/urlicht/roundtrip/info_t")
     ->UseRealTime()->Repetitions(10)->ReportAggregatesOnly(true);

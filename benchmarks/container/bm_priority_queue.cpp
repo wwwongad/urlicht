@@ -166,19 +166,19 @@ static void BM_kNN(benchmark::State& state) {
 
 BENCHMARK_TEMPLATE(BM_kNN, std_priority_queue<size_t, UncachedComp>, UncachedComp)
     ->RangeMultiplier(10)->Range(1000, 100000)
-    ->Name("priority_queue/std/kNN/uncached")->Repetitions(10)->ReportAggregatesOnly(true);
+    ->Name("container/priority_queue/std/knn/uncached")->Repetitions(10)->ReportAggregatesOnly(true);
 
 BENCHMARK_TEMPLATE(BM_kNN, urlicht_binary_heap<size_t, UncachedComp>, UncachedComp)
     ->RangeMultiplier(10)->Range(1000, 100000)
-    ->Name("priority_queue/urlicht/kNN/uncached")->Repetitions(10)->ReportAggregatesOnly(true);
+    ->Name("container/priority_queue/urlicht/knn/uncached")->Repetitions(10)->ReportAggregatesOnly(true);
 
 BENCHMARK_TEMPLATE(BM_kNN, std_priority_queue<size_t, CachedComp>, CachedComp)
     ->RangeMultiplier(10)->Range(1000, 100000)
-    ->Name("priority_queue/std/kNN/cached")->Repetitions(10)->ReportAggregatesOnly(true);
+    ->Name("container/priority_queue/std/knn/cached")->Repetitions(10)->ReportAggregatesOnly(true);
 
 BENCHMARK_TEMPLATE(BM_kNN, urlicht_binary_heap<size_t, CachedComp>, CachedComp)
     ->RangeMultiplier(10)->Range(1000, 100000)
-    ->Name("priority_queue/urlicht/kNN/cached")->Repetitions(10)->ReportAggregatesOnly(true);
+    ->Name("container/priority_queue/urlicht/knn/cached")->Repetitions(10)->ReportAggregatesOnly(true);
 
 
 template <bool IsTrivial = true>
@@ -233,17 +233,17 @@ static void BM_sorting(benchmark::State& state) {
 
 BENCHMARK_TEMPLATE(BM_sorting, std_priority_queue<int64_t, std::greater<>>)
     ->RangeMultiplier(10)->Range(100, 20000)
-    ->Name("priority_queue/std/sorting/trivial")->Repetitions(10)->ReportAggregatesOnly(true);
+    ->Name("container/priority_queue/std/sorting/trivial")->Repetitions(10)->ReportAggregatesOnly(true);
 BENCHMARK_TEMPLATE(BM_sorting, urlicht_binary_heap<int64_t, std::greater<>>)
     ->RangeMultiplier(10)->Range(100, 20000)
-    ->Name("priority_queue/urlicht/sorting/trivial")->Repetitions(10)->ReportAggregatesOnly(true);
+    ->Name("container/priority_queue/urlicht/sorting/trivial")->Repetitions(10)->ReportAggregatesOnly(true);
 
 BENCHMARK_TEMPLATE(BM_sorting, std_priority_queue<std::string, std::greater<>>, false)
     ->RangeMultiplier(10)->Range(100, 20000)
-    ->Name("priority_queue/std/sorting/non-trivial")->Repetitions(10)->ReportAggregatesOnly(true);
+    ->Name("container/priority_queue/std/sorting/non_trivial")->Repetitions(10)->ReportAggregatesOnly(true);
 BENCHMARK_TEMPLATE(BM_sorting, urlicht_binary_heap<std::string, std::greater<>>, false)
     ->RangeMultiplier(10)->Range(100, 20000)
-    ->Name("priority_queue/urlicht/sorting/non-trivial")->Repetitions(10)->ReportAggregatesOnly(true);
+    ->Name("container/priority_queue/urlicht/sorting/non_trivial")->Repetitions(10)->ReportAggregatesOnly(true);
 
 struct Graph {
     int n;
@@ -314,7 +314,7 @@ static void BM_Dijkstra(benchmark::State& state) {
 
 BENCHMARK_TEMPLATE(BM_Dijkstra, std_priority_queue<std::pair<double, int>, std::greater<>>)
     ->RangeMultiplier(10)->Range(100, 10000)
-    ->Name("priority_queue/std/dijkstra")->Repetitions(10)->ReportAggregatesOnly(true);
+    ->Name("container/priority_queue/std/dijkstra")->Repetitions(10)->ReportAggregatesOnly(true);
 BENCHMARK_TEMPLATE(BM_Dijkstra, urlicht_binary_heap<std::pair<double, int>, std::greater<>>)
     ->RangeMultiplier(10)->Range(100, 10000)
-    ->Name("priority_queue/urlicht/dijkstra")->Repetitions(10)->ReportAggregatesOnly(true);
+    ->Name("container/priority_queue/urlicht/dijkstra")->Repetitions(10)->ReportAggregatesOnly(true);

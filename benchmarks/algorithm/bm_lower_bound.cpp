@@ -142,21 +142,29 @@ static void BM_LowerBound_AggregateProjection(benchmark::State& state) {
 
 #define Rng DenseRange(1024, 35536, 4096)
 BENCHMARK_TEMPLATE(BM_LowerBound_Int_Present, UrlichtLowerBound)
+    ->Name("algorithm/lower_bound/urlicht/present")
     ->Rng->Repetitions(10)->ReportAggregatesOnly(true);
 BENCHMARK_TEMPLATE(BM_LowerBound_Int_Present, STDLowerBound)
+    ->Name("algorithm/lower_bound/std/present")
     ->Rng->Repetitions(10)->ReportAggregatesOnly(true);
 
 BENCHMARK_TEMPLATE(BM_LowerBound_Int_Absent, UrlichtLowerBound)
+    ->Name("algorithm/lower_bound/urlicht/absent")
     ->Rng->Repetitions(10)->ReportAggregatesOnly(true);
 BENCHMARK_TEMPLATE(BM_LowerBound_Int_Absent, STDLowerBound)
+    ->Name("algorithm/lower_bound/std/absent")
     ->Rng->Repetitions(10)->ReportAggregatesOnly(true);
 
 BENCHMARK_TEMPLATE(BM_LowerBound_Int_RandomQueries, UrlichtLowerBound)
+    ->Name("algorithm/lower_bound/urlicht/random_queries")
     ->Rng->Repetitions(10)->ReportAggregatesOnly(true);
 BENCHMARK_TEMPLATE(BM_LowerBound_Int_RandomQueries, STDLowerBound)
+    ->Name("algorithm/lower_bound/std/random_queries")
     ->Rng->Repetitions(10)->ReportAggregatesOnly(true);
 
 BENCHMARK_TEMPLATE(BM_LowerBound_AggregateProjection, UrlichtLowerBound)
+    ->Name("algorithm/lower_bound/urlicht/aggregate_projection")
     ->Rng->Repetitions(10)->ReportAggregatesOnly(true);
-BENCHMARK_TEMPLATE(BM_LowerBound_Int_RandomQueries, STDLowerBound)
+BENCHMARK_TEMPLATE(BM_LowerBound_AggregateProjection, STDLowerBound)
+    ->Name("algorithm/lower_bound/std/aggregate_projection")
     ->Rng->Repetitions(10)->ReportAggregatesOnly(true);

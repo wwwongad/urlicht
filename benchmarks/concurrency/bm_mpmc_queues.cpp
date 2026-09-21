@@ -6,8 +6,6 @@
 #include <barrier>
 #include <chrono>
 #include <concepts>
-#include <cstdint>
-#include <ranges>
 #include <thread>
 #include <vector>
 #include "third_party/rigtorp_mpmc.h"
@@ -367,77 +365,77 @@ static void add_pc_args(benchmark::internal::Benchmark* b) {
 
 
 BENCHMARK_TEMPLATE(BM_mpmc_throughput, rigtorp_mpmc, value_type1, queue_size)
-    ->Name("rigtorp_mpmc/size_t/try_loop")
+    ->Name("concurrency/mpmc/rigtorp/size_t/try_loop")
     ->Apply(add_pc_args)->UseRealTime()->Repetitions(10)->ReportAggregatesOnly(true);
 BENCHMARK_TEMPLATE(BM_mpmc_throughput, rigtorp_mpmc, value_type2, queue_size)
-    ->Name("rigtorp_mpmc/info_t/try_loop")
+    ->Name("concurrency/mpmc/rigtorp/info_t/try_loop")
     ->Apply(add_pc_args)->UseRealTime()->Repetitions(10)->ReportAggregatesOnly(true);
 
 #if URLICHT_BM_HAS_BOOST
 BENCHMARK_TEMPLATE(BM_mpmc_throughput, boost_mpmc, value_type1, queue_size)
-    ->Name("boost_mpmc/size_t/try_loop")
+    ->Name("concurrency/mpmc/boost/size_t/try_loop")
     ->Apply(add_pc_args)->UseRealTime()->Repetitions(10)->ReportAggregatesOnly(true);
 BENCHMARK_TEMPLATE(BM_mpmc_throughput, boost_mpmc, value_type2, queue_size)
-    ->Name("boost_mpmc/info_t/try_loop")
+    ->Name("concurrency/mpmc/boost/info_t/try_loop")
     ->Apply(add_pc_args)->UseRealTime()->Repetitions(10)->ReportAggregatesOnly(true);
 #endif
 
 BENCHMARK_TEMPLATE(BM_mpmc_throughput, urlicht_mpmc, value_type1, queue_size)
-    ->Name("urlicht_mpmc/size_t/try_loop")
+    ->Name("concurrency/mpmc/urlicht/size_t/try_loop")
     ->Apply(add_pc_args)->UseRealTime()->Repetitions(10)->ReportAggregatesOnly(true);
 BENCHMARK_TEMPLATE(BM_mpmc_throughput, urlicht_mpmc, value_type2, queue_size)
-    ->Name("urlicht_mpmc/info_t/try_loop")
+    ->Name("concurrency/mpmc/urlicht/info_t/try_loop")
     ->Apply(add_pc_args)->UseRealTime()->Repetitions(10)->ReportAggregatesOnly(true);
 
 BENCHMARK_TEMPLATE(BM_mpmc_throughput, rigtorp_mpmc, value_type1, queue_size, push_mode::emplace)
-    ->Name("rigtorp_mpmc/size_t/emplace")
+    ->Name("concurrency/mpmc/rigtorp/size_t/emplace")
     ->Apply(add_pc_args)->UseRealTime()->Repetitions(10)->ReportAggregatesOnly(true);
 BENCHMARK_TEMPLATE(BM_mpmc_throughput, rigtorp_mpmc, value_type2, queue_size, push_mode::emplace)
-    ->Name("rigtorp_mpmc/info_t/emplace")
+    ->Name("concurrency/mpmc/rigtorp/info_t/emplace")
     ->Apply(add_pc_args)->UseRealTime()->Repetitions(10)->ReportAggregatesOnly(true);
 
 BENCHMARK_TEMPLATE(BM_mpmc_throughput, urlicht_mpmc, value_type1, queue_size, push_mode::emplace)
-    ->Name("urlicht_mpmc/size_t/emplace")
+    ->Name("concurrency/mpmc/urlicht/size_t/emplace")
     ->Apply(add_pc_args)->UseRealTime()->Repetitions(10)->ReportAggregatesOnly(true);
 BENCHMARK_TEMPLATE(BM_mpmc_throughput, urlicht_mpmc, value_type2, queue_size, push_mode::emplace)
-    ->Name("urlicht_mpmc/info_t/emplace")
+    ->Name("concurrency/mpmc/urlicht/info_t/emplace")
     ->Apply(add_pc_args)->UseRealTime()->Repetitions(10)->ReportAggregatesOnly(true);
 
 
 // End-to-end latency
 BENCHMARK_TEMPLATE(BM_mpmc_end_to_end_latency, rigtorp_mpmc, value_type1, queue_size)
-    ->Name("rigtorp_mpmc/size_t/try_loop/latency")
+    ->Name("concurrency/mpmc/rigtorp/size_t/try_loop/latency")
     ->Apply(add_pc_args)->UseRealTime()->Repetitions(10)->ReportAggregatesOnly(true);
 BENCHMARK_TEMPLATE(BM_mpmc_end_to_end_latency, rigtorp_mpmc, value_type2, queue_size)
-    ->Name("rigtorp_mpmc/info_t/try_loop/latency")
+    ->Name("concurrency/mpmc/rigtorp/info_t/try_loop/latency")
     ->Apply(add_pc_args)->UseRealTime()->Repetitions(10)->ReportAggregatesOnly(true);
 
 #if URLICHT_BM_HAS_BOOST
 BENCHMARK_TEMPLATE(BM_mpmc_end_to_end_latency, boost_mpmc, value_type1, queue_size)
-    ->Name("boost_mpmc/size_t/try_loop/latency")
+    ->Name("concurrency/mpmc/boost/size_t/try_loop/latency")
     ->Apply(add_pc_args)->UseRealTime()->Repetitions(10)->ReportAggregatesOnly(true);
 BENCHMARK_TEMPLATE(BM_mpmc_end_to_end_latency, boost_mpmc, value_type2, queue_size)
-    ->Name("boost_mpmc/info_t/try_loop/latency")
+    ->Name("concurrency/mpmc/boost/info_t/try_loop/latency")
     ->Apply(add_pc_args)->UseRealTime()->Repetitions(10)->ReportAggregatesOnly(true);
 #endif
 
 BENCHMARK_TEMPLATE(BM_mpmc_end_to_end_latency, urlicht_mpmc, value_type1, queue_size)
-    ->Name("urlicht_mpmc/size_t/try_loop/latency")
+    ->Name("concurrency/mpmc/urlicht/size_t/try_loop/latency")
     ->Apply(add_pc_args)->UseRealTime()->Repetitions(10)->ReportAggregatesOnly(true);
 BENCHMARK_TEMPLATE(BM_mpmc_end_to_end_latency, urlicht_mpmc, value_type2, queue_size)
-    ->Name("urlicht_mpmc/info_t/try_loop/latency")
+    ->Name("concurrency/mpmc/urlicht/info_t/try_loop/latency")
     ->Apply(add_pc_args)->UseRealTime()->Repetitions(10)->ReportAggregatesOnly(true);
 
 BENCHMARK_TEMPLATE(BM_mpmc_end_to_end_latency, rigtorp_mpmc, value_type1, queue_size, push_mode::emplace)
-    ->Name("rigtorp_mpmc/size_t/emplace/latency")
+    ->Name("concurrency/mpmc/rigtorp/size_t/emplace/latency")
     ->Apply(add_pc_args)->UseRealTime()->Repetitions(10)->ReportAggregatesOnly(true);
 BENCHMARK_TEMPLATE(BM_mpmc_end_to_end_latency, rigtorp_mpmc, value_type2, queue_size, push_mode::emplace)
-    ->Name("rigtorp_mpmc/info_t/emplace/latency")
+    ->Name("concurrency/mpmc/rigtorp/info_t/emplace/latency")
     ->Apply(add_pc_args)->UseRealTime()->Repetitions(10)->ReportAggregatesOnly(true);
 
 BENCHMARK_TEMPLATE(BM_mpmc_end_to_end_latency, urlicht_mpmc, value_type1, queue_size, push_mode::emplace)
-    ->Name("urlicht_mpmc/size_t/emplace/latency")
+    ->Name("concurrency/mpmc/urlicht/size_t/emplace/latency")
     ->Apply(add_pc_args)->UseRealTime()->Repetitions(10)->ReportAggregatesOnly(true);
 BENCHMARK_TEMPLATE(BM_mpmc_end_to_end_latency, urlicht_mpmc, value_type2, queue_size, push_mode::emplace)
-    ->Name("urlicht_mpmc/info_t/emplace/latency")
+    ->Name("concurrency/mpmc/urlicht/info_t/emplace/latency")
     ->Apply(add_pc_args)->UseRealTime()->Repetitions(10)->ReportAggregatesOnly(true);

@@ -75,9 +75,9 @@ static void BM_SeqAccess(benchmark::State& state) {
 }
 
 BENCHMARK_TEMPLATE(BM_SeqAccess, MallocMemory)
-    ->Name("SeqAccess/Malloc4K")->Repetitions(10)->ReportAggregatesOnly(true);
+    ->Name("memory/huge_pages/seq_access/malloc_4k")->Repetitions(10)->ReportAggregatesOnly(true);
 BENCHMARK_TEMPLATE(BM_SeqAccess, HugePagesMemory)
-    ->Name("SeqAccess/HugePages2M")->Repetitions(10)->ReportAggregatesOnly(true);
+    ->Name("memory/huge_pages/seq_access/huge_pages_2m")->Repetitions(10)->ReportAggregatesOnly(true);
 
 // ============================================================================
 // BENCHMARK: RANDOM ACCESS
@@ -113,6 +113,6 @@ static void BM_RandomAccess(benchmark::State& state) {
 }
 
 BENCHMARK_TEMPLATE(BM_RandomAccess, MallocMemory)
-    ->Name("RandomAccess/Malloc4K")->Repetitions(10)->ReportAggregatesOnly(true);
+    ->Name("memory/huge_pages/random_access/malloc_4k")->Repetitions(10)->ReportAggregatesOnly(true);
 BENCHMARK_TEMPLATE(BM_RandomAccess, HugePagesMemory)
-    ->Name("RandomAccess/HugePages2M")->Repetitions(10)->ReportAggregatesOnly(true);
+    ->Name("memory/huge_pages/random_access/huge_pages_2m")->Repetitions(10)->ReportAggregatesOnly(true);

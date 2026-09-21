@@ -80,46 +80,46 @@ static void BM_Vector_MoveConstruct(benchmark::State& state) {
 }
 
 BENCHMARK_TEMPLATE(BM_Vector_DefaultConstruct, str_vec)
-    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("DefaultConstruct/std");
+    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("container/inplace_vector/std/default_construct");
 
 BENCHMARK_TEMPLATE(BM_Vector_DefaultConstruct, str_ivec<LARGE_CAP>)
-    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("DefaultConstruct/urlicht");
+    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("container/inplace_vector/urlicht/default_construct");
 
 // Size and Value
 BENCHMARK_TEMPLATE(BM_Vector_ConstructWithSizeAndValue, str_vec)
     ->Arg(SMALL_CAP)->Arg(MEDIUM_CAP)->Arg(LARGE_CAP)
-    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("ConstructWithSizeAndValue/std");
+    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("container/inplace_vector/std/construct_with_size_and_value");
 
 BENCHMARK_TEMPLATE(BM_Vector_ConstructWithSizeAndValue, str_ivec<LARGE_CAP>)
     ->Arg(SMALL_CAP)->Arg(MEDIUM_CAP)->Arg(LARGE_CAP)
-    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("ConstructWithSizeAndValue/urlicht");
+    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("container/inplace_vector/urlicht/construct_with_size_and_value");
 
 // From range
 BENCHMARK_TEMPLATE(BM_Vector_ConstructFromRange, str_vec)
     ->Arg(SMALL_CAP)->Arg(MEDIUM_CAP)->Arg(LARGE_CAP)
-    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("ConstructFromRange/std");
+    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("container/inplace_vector/std/construct_from_range");
 
 BENCHMARK_TEMPLATE(BM_Vector_ConstructFromRange, str_ivec<LARGE_CAP>)
     ->Arg(SMALL_CAP)->Arg(MEDIUM_CAP)->Arg(LARGE_CAP)
-    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("ConstructFromRange/urlicht");
+    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("container/inplace_vector/urlicht/construct_from_range");
 
 // Copy construct
 BENCHMARK_TEMPLATE(BM_Vector_CopyConstruct, str_vec)
     ->Arg(SMALL_CAP)->Arg(MEDIUM_CAP)->Arg(LARGE_CAP)
-    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("CopyConstruct/std");
+    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("container/inplace_vector/std/copy_construct");
 
 BENCHMARK_TEMPLATE(BM_Vector_CopyConstruct, str_ivec<LARGE_CAP>)
     ->Arg(SMALL_CAP)->Arg(MEDIUM_CAP)->Arg(LARGE_CAP)
-    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("CopyConstruct/urlicht");
+    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("container/inplace_vector/urlicht/copy_construct");
 
 // Copy construct
 BENCHMARK_TEMPLATE(BM_Vector_MoveConstruct, str_vec)
     ->Arg(SMALL_CAP)->Arg(MEDIUM_CAP)->Arg(LARGE_CAP)
-    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("MoveConstruct/std");
+    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("container/inplace_vector/std/move_construct");
 
 BENCHMARK_TEMPLATE(BM_Vector_MoveConstruct, str_ivec<LARGE_CAP>)
     ->Arg(SMALL_CAP)->Arg(MEDIUM_CAP)->Arg(LARGE_CAP)
-    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("MoveConstruct/urlicht");
+    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("container/inplace_vector/urlicht/move_construct");
 
 
 template <bool Unsafe, typename Vec>
@@ -174,15 +174,15 @@ static void BM_Vector_Trivial_PushBack(benchmark::State& state) {
 
 BENCHMARK_TEMPLATE(BM_Vector_Trivial_PushBack, int_vec)
     ->Arg(SMALL_CAP)->Arg(MEDIUM_CAP)->Arg(LARGE_CAP)
-    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("TrivialPushBack/std");
+    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("container/inplace_vector/std/trivial_push_back");
 
 BENCHMARK_TEMPLATE(BM_Vector_Trivial_PushBack, InplaceVecWrapper<false, int_ivec<LARGE_CAP>>)
     ->Arg(SMALL_CAP)->Arg(MEDIUM_CAP)->Arg(LARGE_CAP)
-    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("TrivialPushBack/urlicht/safe");
+    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("container/inplace_vector/urlicht/trivial_push_back/safe");
 
 BENCHMARK_TEMPLATE(BM_Vector_Trivial_PushBack, InplaceVecWrapper<true, int_ivec<LARGE_CAP>>)
     ->Arg(SMALL_CAP)->Arg(MEDIUM_CAP)->Arg(LARGE_CAP)
-    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("TrivialPushBack/urlicht/unsafe");
+    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("container/inplace_vector/urlicht/trivial_push_back/unsafe");
 
 template <typename Vec>
 static void BM_Vector_EmplaceBack(benchmark::State& state) {
@@ -201,15 +201,15 @@ static void BM_Vector_EmplaceBack(benchmark::State& state) {
 
 BENCHMARK_TEMPLATE(BM_Vector_EmplaceBack, str_vec)
     ->Arg(SMALL_CAP)->Arg(MEDIUM_CAP)->Arg(LARGE_CAP)
-    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("EmplaceBack/std");
+    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("container/inplace_vector/std/emplace_back");
 
 BENCHMARK_TEMPLATE(BM_Vector_EmplaceBack, InplaceVecWrapper<false, str_ivec<LARGE_CAP>>)
     ->Arg(SMALL_CAP)->Arg(MEDIUM_CAP)->Arg(LARGE_CAP)
-    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("EmplaceBack/urlicht/safe");
+    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("container/inplace_vector/urlicht/emplace_back/safe");
 
 BENCHMARK_TEMPLATE(BM_Vector_EmplaceBack, InplaceVecWrapper<true, str_ivec<LARGE_CAP>>)
     ->Arg(SMALL_CAP)->Arg(MEDIUM_CAP)->Arg(LARGE_CAP)
-    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("EmplaceBack/urlicht/unsafe");
+    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("container/inplace_vector/urlicht/emplace_back/unsafe");
 
 template<typename Vec>
 static void BM_Vector_PopBack(benchmark::State& state) {
@@ -235,12 +235,12 @@ static void BM_Vector_PopBack(benchmark::State& state) {
 
 BENCHMARK_TEMPLATE(BM_Vector_PopBack, str_vec)
     ->Arg(MEDIUM_CAP)->Arg(LARGE_CAP)
-    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("PopBack/std");
+    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("container/inplace_vector/std/pop_back");
 
 BENCHMARK_TEMPLATE(BM_Vector_PopBack, str_ivec<MEDIUM_CAP>)
     ->Arg(MEDIUM_CAP)
-    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("PopBack/urlicht");
+    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("container/inplace_vector/urlicht/pop_back");
 
 BENCHMARK_TEMPLATE(BM_Vector_PopBack, str_ivec<LARGE_CAP>)
     ->Arg(LARGE_CAP)
-    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("PopBack/urlicht");
+    ->Repetitions(10)->ReportAggregatesOnly(true)->Name("container/inplace_vector/urlicht/pop_back");

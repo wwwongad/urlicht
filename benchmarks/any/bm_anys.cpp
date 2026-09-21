@@ -141,23 +141,23 @@ static void BM_AnyCast(benchmark::State& state) {
 // -----------------------------------------------------------------------------
 // Small objects
 BENCHMARK_TEMPLATE(BM_CreateAnyFromObj, std::any, ObjType::SMALL)
-    ->Name("CreateAnyFromObj/small/std::any")->Repetitions(10)->ReportAggregatesOnly(true);
+    ->Name("any/create_from_obj/std/small")->Repetitions(10)->ReportAggregatesOnly(true);
 BENCHMARK_TEMPLATE(BM_CreateAnyFromObj, urlicht::any::adaptive_any<SMALL_SBO>, ObjType::SMALL)
-    ->Name("CreateAnyFromObj/small/adaptive_any")->Repetitions(10)->ReportAggregatesOnly(true);
+    ->Name("any/create_from_obj/urlicht/small")->Repetitions(10)->ReportAggregatesOnly(true);
 
 // Mid-sized objects
 BENCHMARK_TEMPLATE(BM_CreateAnyFromObj, std::any, ObjType::MEDIUM)
-    ->Name("CreateAnyFromObj/mid/std::any")->Repetitions(10)->ReportAggregatesOnly(true);
+    ->Name("any/create_from_obj/std/mid")->Repetitions(10)->ReportAggregatesOnly(true);
 BENCHMARK_TEMPLATE(BM_CreateAnyFromObj, urlicht::any::adaptive_any<MID_SBO>, ObjType::MEDIUM)
-    ->Name("CreateAnyFromObj/mid/adaptive_any")->Repetitions(10)->ReportAggregatesOnly(true);
+    ->Name("any/create_from_obj/urlicht/mid")->Repetitions(10)->ReportAggregatesOnly(true);
 
 // Large objects
 BENCHMARK_TEMPLATE(BM_CreateAnyFromObj, std::any, ObjType::LARGE)
-    ->Name("CreateAnyFromObj/large/std::any")->Repetitions(10)->ReportAggregatesOnly(true);
+    ->Name("any/create_from_obj/std/large")->Repetitions(10)->ReportAggregatesOnly(true);
 BENCHMARK_TEMPLATE(BM_CreateAnyFromObj, urlicht::any::adaptive_any<LARGE_SBO>, ObjType::LARGE)
-    ->Name("CreateAnyFromObj/large/adaptive_any")->Repetitions(10)->ReportAggregatesOnly(true);
+    ->Name("any/create_from_obj/urlicht/large")->Repetitions(10)->ReportAggregatesOnly(true);
 BENCHMARK_TEMPLATE(BM_CreateAnyFromObj, urlicht::any::adaptive_any<MID_SBO>, ObjType::LARGE)
-    ->Name("CreateAnyFromObj/large/adaptive_any/insufficient_storage")
+    ->Name("any/create_from_obj/urlicht/large/insufficient_storage")
     ->Repetitions(10)->ReportAggregatesOnly(true);
 
 // -----------------------------------------------------------------------------
@@ -165,24 +165,24 @@ BENCHMARK_TEMPLATE(BM_CreateAnyFromObj, urlicht::any::adaptive_any<MID_SBO>, Obj
 // -----------------------------------------------------------------------------
 // Small objects
 BENCHMARK_TEMPLATE(BM_AnyCopyConstruction, std::any, ObjType::SMALL)
-    ->Name("AnyCopyConstruction/small/std::any")->Repetitions(10)->ReportAggregatesOnly(true);
+    ->Name("any/copy_construction/std/small")->Repetitions(10)->ReportAggregatesOnly(true);
 BENCHMARK_TEMPLATE(BM_AnyCopyConstruction, urlicht::any::adaptive_any<SMALL_SBO>, ObjType::SMALL)
-    ->Name("AnyCopyConstruction/small/adaptive_any")->Repetitions(10)->ReportAggregatesOnly(true);
+    ->Name("any/copy_construction/urlicht/small")->Repetitions(10)->ReportAggregatesOnly(true);
 
 // Medium objects
 BENCHMARK_TEMPLATE(BM_AnyCopyConstruction, std::any, ObjType::MEDIUM)
-    ->Name("AnyCopyConstruction/mid/std::any")->Repetitions(10)->ReportAggregatesOnly(true);
+    ->Name("any/copy_construction/std/mid")->Repetitions(10)->ReportAggregatesOnly(true);
 BENCHMARK_TEMPLATE(BM_AnyCopyConstruction, urlicht::any::adaptive_any<MID_SBO>, ObjType::MEDIUM)
-    ->Name("AnyCopyConstruction/mid/adaptive_any")->Repetitions(10)->ReportAggregatesOnly(true);
+    ->Name("any/copy_construction/urlicht/mid")->Repetitions(10)->ReportAggregatesOnly(true);
 
 // Large objects
 BENCHMARK_TEMPLATE(BM_AnyCopyConstruction, std::any, ObjType::LARGE)
-    ->Name("AnyCopyConstruction/large/std::any")->Repetitions(10)->ReportAggregatesOnly(true);
+    ->Name("any/copy_construction/std/large")->Repetitions(10)->ReportAggregatesOnly(true);
 BENCHMARK_TEMPLATE(BM_AnyCopyConstruction, urlicht::any::adaptive_any<LARGE_SBO>, ObjType::LARGE)
-    ->Name("AnyCopyConstruction/large/adaptive_any")->Repetitions(10)->ReportAggregatesOnly(true);
+    ->Name("any/copy_construction/urlicht/large")->Repetitions(10)->ReportAggregatesOnly(true);
 // Insufficient storage
 BENCHMARK_TEMPLATE(BM_AnyCopyConstruction, urlicht::any::adaptive_any<MID_SBO>, ObjType::LARGE)
-    ->Name("AnyCopyConstruction/large/adaptive_any/insufficient_storage")
+    ->Name("any/copy_construction/urlicht/large/insufficient_storage")
     ->Repetitions(10)->ReportAggregatesOnly(true);
 
 // -----------------------------------------------------------------------------
@@ -190,23 +190,23 @@ BENCHMARK_TEMPLATE(BM_AnyCopyConstruction, urlicht::any::adaptive_any<MID_SBO>, 
 // -----------------------------------------------------------------------------
 // Small objects
 BENCHMARK_TEMPLATE(BM_AnyAssignment, std::any, ObjType::SMALL)
-    ->Name("AnyAssignment/small/std::any")->Repetitions(10)->ReportAggregatesOnly(true);
+    ->Name("any/assignment/std/small")->Repetitions(10)->ReportAggregatesOnly(true);
 BENCHMARK_TEMPLATE(BM_AnyAssignment, urlicht::any::adaptive_any<SMALL_SBO>, ObjType::SMALL)
-    ->Name("AnyAssignment/small/adaptive_any")->Repetitions(10)->ReportAggregatesOnly(true);
+    ->Name("any/assignment/urlicht/small")->Repetitions(10)->ReportAggregatesOnly(true);
 
 // Medium objects
 BENCHMARK_TEMPLATE(BM_AnyAssignment, std::any, ObjType::MEDIUM)
-    ->Name("AnyAssignment/mid/std::any")->Repetitions(10)->ReportAggregatesOnly(true);
+    ->Name("any/assignment/std/mid")->Repetitions(10)->ReportAggregatesOnly(true);
 BENCHMARK_TEMPLATE(BM_AnyAssignment, urlicht::any::adaptive_any<MID_SBO>, ObjType::MEDIUM)
-    ->Name("AnyAssignment/mid/adaptive_any")->Repetitions(10)->ReportAggregatesOnly(true);
+    ->Name("any/assignment/urlicht/mid")->Repetitions(10)->ReportAggregatesOnly(true);
 
 // Large objects
 BENCHMARK_TEMPLATE(BM_AnyAssignment, std::any, ObjType::LARGE)
-    ->Name("AnyAssignment/large/std::any")->Repetitions(10)->ReportAggregatesOnly(true);
+    ->Name("any/assignment/std/large")->Repetitions(10)->ReportAggregatesOnly(true);
 BENCHMARK_TEMPLATE(BM_AnyAssignment, urlicht::any::adaptive_any<LARGE_SBO>, ObjType::LARGE)
-    ->Name("AnyAssignment/large/adaptive_any")->Repetitions(10)->ReportAggregatesOnly(true);
+    ->Name("any/assignment/urlicht/large")->Repetitions(10)->ReportAggregatesOnly(true);
 BENCHMARK_TEMPLATE(BM_AnyAssignment, urlicht::any::adaptive_any<MID_SBO>, ObjType::LARGE)
-    ->Name("AnyAssignment/large/adaptive_any/insufficient_storage")
+    ->Name("any/assignment/urlicht/large/insufficient_storage")
     ->Repetitions(10)->ReportAggregatesOnly(true);
 
 // -----------------------------------------------------------------------------
@@ -214,9 +214,9 @@ BENCHMARK_TEMPLATE(BM_AnyAssignment, urlicht::any::adaptive_any<MID_SBO>, ObjTyp
 // -----------------------------------------------------------------------------
 
 BENCHMARK_TEMPLATE(BM_AnyCast, std::any, ObjType::SMALL)
-    ->Name("AnyCast/std::any")->Repetitions(10)->ReportAggregatesOnly(true);
+    ->Name("any/cast/std")->Repetitions(10)->ReportAggregatesOnly(true);
 BENCHMARK_TEMPLATE(BM_AnyCast, urlicht::any::adaptive_any<SMALL_SBO>, ObjType::SMALL)
-    ->Name("AnyCast/adaptive_any")->Repetitions(10)->ReportAggregatesOnly(true);
+    ->Name("any/cast/urlicht")->Repetitions(10)->ReportAggregatesOnly(true);
 BENCHMARK_TEMPLATE(BM_AnyCast, urlicht::any::adaptive_any<SMALL_SBO>, ObjType::SMALL, true)
-    ->Name("AnyCast/adaptive_any/unchecked")->Repetitions(10)->ReportAggregatesOnly(true);
+    ->Name("any/cast/urlicht/unchecked")->Repetitions(10)->ReportAggregatesOnly(true);
 

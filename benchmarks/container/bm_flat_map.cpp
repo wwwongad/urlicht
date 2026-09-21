@@ -145,23 +145,23 @@ static void BM_erase(benchmark::State& state) {
     ->RangeMultiplier(4)->Range(1 << 8, 1 << 16)->Repetitions(10)->ReportAggregatesOnly(true);
 
 #define URLICHT_REGISTER_MAP(MapType, Label) \
-    BENCHMARK_TEMPLATE(BM_try_emplace, MapType)->Name("try_emplace/" Label) BM_ARGS(); \
-    BENCHMARK_TEMPLATE(BM_insert_range, MapType)->Name("insert_range/" Label) BM_ARGS(); \
-    BENCHMARK_TEMPLATE(BM_traversal, MapType)->Name("traversal/" Label) BM_ARGS(); \
-    BENCHMARK_TEMPLATE(BM_find, MapType) ->Name("find/" Label) BM_ARGS(); \
-    BENCHMARK_TEMPLATE(BM_erase, MapType) ->Name("erase/" Label) BM_ARGS();
+    BENCHMARK_TEMPLATE(BM_try_emplace, MapType)->Name("container/flat_map/" Label "/try_emplace") BM_ARGS(); \
+    BENCHMARK_TEMPLATE(BM_insert_range, MapType)->Name("container/flat_map/" Label "/insert_range") BM_ARGS(); \
+    BENCHMARK_TEMPLATE(BM_traversal, MapType)->Name("container/flat_map/" Label "/traversal") BM_ARGS(); \
+    BENCHMARK_TEMPLATE(BM_find, MapType)   ->Name("container/flat_map/" Label "/find") BM_ARGS(); \
+    BENCHMARK_TEMPLATE(BM_erase, MapType)  ->Name("container/flat_map/" Label "/erase") BM_ARGS();
 
 
 using urlicht_flat_map_t = urlicht::container::flat_map<key_type, mapped_type>;
-URLICHT_REGISTER_MAP(urlicht_flat_map_t, "urlicht::container::flat_map")
+URLICHT_REGISTER_MAP(urlicht_flat_map_t, "urlicht")
 
 #if URLICHT_BM_HAS_BOOST
 using boost_flat_map_t = boost::container::flat_map<key_type, mapped_type>;
-URLICHT_REGISTER_MAP(boost_flat_map_t, "boost::flat_map")
+URLICHT_REGISTER_MAP(boost_flat_map_t, "boost")
 #endif
 
 using std_map_t = std::map<key_type, mapped_type>;
-URLICHT_REGISTER_MAP(std_map_t, "std::map")
+URLICHT_REGISTER_MAP(std_map_t, "std")
 
 
 #undef URLICHT_REGISTER_MAP
