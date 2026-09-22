@@ -106,6 +106,11 @@ namespace urlicht::container {
                           "Mismatch of Container's size_type across different value_types");
 
         protected:
+            struct empty_counter_type_ {};
+            struct empty_position_map_type_ {};
+            struct empty_free_id_pool_type_ {};
+            struct empty_generation_map_type_ {};
+
             using container_allocator_type_ =
                 std::conditional_t<
                     urlicht::concepts::has_allocator<container_type>,
@@ -114,16 +119,18 @@ namespace urlicht::container {
                     urlicht::internal::allocator_of_t<container_type>,
                     std::allocator<value_type>
                 >;
-            using maybe_counter_type_ = std::conditional_t<is_stable(), StabilityCounter, std::monostate>;
+            using maybe_counter_type_ = std::conditional_t<is_stable(), StabilityCounter, empty_counter_type_>;
             // Maps id to position
-            using position_map_type_ = std::conditional_t<is_mutable(), Container<size_type>, std::monostate>;
+            using position_map_type_ = std::conditional_t<is_mutable(), Container<size_type>, empty_position_map_type_>;
             using maybe_id_type_ = std::conditional_t<is_mutable(), apriori_size_type_, std::monostate>;
             // Collection of retired ids
-            using free_id_pool_type_ = std::conditional_t<reuse_id(), Container<maybe_id_type_>, std::monostate>;
+            using free_id_pool_type_ = std::conditional_t<
+                reuse_id(), Container<maybe_id_type_>, empty_free_id_pool_type_
+            >;
             using maybe_generation_type_ = std::conditional_t<track_gen(), std::uint32_t, std::monostate>;
             // Maps id to generation
             using generation_map_type_ =
-            std::conditional_t<track_gen(), Container<maybe_generation_type_>, std::monostate>;
+                std::conditional_t<track_gen(), Container<maybe_generation_type_>, empty_generation_map_type_>;
 
             static constexpr size_type npos_ = std::numeric_limits<size_type>::max();
 
