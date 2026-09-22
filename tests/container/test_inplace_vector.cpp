@@ -65,7 +65,7 @@ TEST_F(InplaceVector, TypeAlias) {
     using IV = inplace_vector<int, 10>;
 
     EXPECT_TRUE((std::same_as<IV::value_type, int>));
-    EXPECT_TRUE((std::same_as<IV::size_type, uint8_t>));
+    EXPECT_TRUE((std::same_as<IV::size_type, std::size_t>));
     EXPECT_TRUE((std::same_as<IV::difference_type, std::ptrdiff_t>));
     EXPECT_TRUE((std::same_as<IV::reference, int&>));
     EXPECT_TRUE((std::same_as<IV::const_reference, const int&>));
@@ -76,10 +76,10 @@ TEST_F(InplaceVector, TypeAlias) {
     EXPECT_TRUE((std::same_as<IV::reverse_iterator, std::reverse_iterator<int*>>));
     EXPECT_TRUE((std::same_as<IV::const_reverse_iterator, std::reverse_iterator<const int*>>));
 
-    // Adaptive size_type
-    EXPECT_TRUE((std::same_as<inplace_vector<int, 256>::size_type, uint16_t>));
-    EXPECT_TRUE((std::same_as<inplace_vector<int, 65536>::size_type, uint32_t>));
-    EXPECT_TRUE((std::same_as<inplace_vector<int, 4'294'967'296>::size_type, uint64_t>));
+    // Adaptive size_type deprecated
+    EXPECT_TRUE((std::same_as<inplace_vector<int, 256>::size_type, std::size_t>));
+    EXPECT_TRUE((std::same_as<inplace_vector<int, 65536>::size_type, std::size_t>));
+    EXPECT_TRUE((std::same_as<inplace_vector<int, 4'294'967'296>::size_type, std::size_t>));
 }
 
 TEST_F(InplaceVector, StaticData) {
@@ -610,6 +610,9 @@ TEST_F(InplaceVector, PopBack) {
         tracked_vec.unchecked_pop_back();
     }
     EXPECT_EQ(IVTrackDestruction::destroy_count, 5);
+
+    EXPECT_NO_FATAL_FAILURE(tracked_vec.pop_back()); // No-op
+    EXPECT_TRUE(tracked_vec.empty());
 }
 
 TEST_F(InplaceVector, AppendRange) {

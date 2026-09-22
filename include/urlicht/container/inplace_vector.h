@@ -31,17 +31,6 @@ namespace urlicht::container {
     class inplace_vector;
 
     namespace detail {
-
-        template <std::size_t N>
-        using adaptive_size_type =
-            std::conditional_t<N <= std::numeric_limits<uint8_t>::max(), uint8_t,
-                std::conditional_t<N <= std::numeric_limits<uint16_t>::max(), uint16_t,
-                    std::conditional_t<N <= std::numeric_limits<uint32_t>::max(), uint32_t,
-                        std::conditional_t<N <= std::numeric_limits<uint64_t>::max(), uint64_t, std::size_t>
-                    >
-                >
-            >;
-
         template <std::ranges::range Range>
         constexpr auto range_begin(Range&& rng) noexcept {
             if constexpr (std::is_rvalue_reference_v<Range&&>) {
@@ -60,7 +49,7 @@ namespace urlicht::container {
             }
         }
 
-        template <typename Other>
+        template <typename>
         struct is_inplace_vector : std::false_type {};
 
         template <typename T, std::size_t N>
@@ -83,7 +72,7 @@ namespace urlicht::container {
         static_assert(urlicht::concepts::object<T>, "T must satisfy std::is_object_v.");
     public:
         using value_type = T;
-        using size_type = detail::adaptive_size_type<N>;
+        using size_type = std::size_t;
         using difference_type = std::ptrdiff_t;
         using reference = T&;
         using const_reference = const T&;
@@ -95,9 +84,6 @@ namespace urlicht::container {
         using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
     private:
-        size_type size_{0U};
-
-        alignas(alignof(T)) std::byte storage_[N * sizeof(T)];
         template <urlicht::concepts::compatible_iterator<T> Iter>
         constexpr void assign_with_size_(Iter first, const size_type n)
         noexcept(std::is_nothrow_constructible_v<T, std::iter_reference_t<Iter>> &&
@@ -664,10 +650,11 @@ namespace urlicht::container {
          * @note: UB if the vector is empty.
          */
         constexpr void unchecked_pop_back() noexcept {
+            const auto new_size = size_ - 1;
             if constexpr (!std::is_trivially_destructible_v<value_type>) {
-                std::destroy_at(this->end() - 1);
+                std::destroy_at(data() + new_size);
             }
-            --this->size_;
+            size_ = new_size;
         }
 
         /**
@@ -675,7 +662,9 @@ namespace urlicht::container {
          * @pre: The vector is non-empty.
          */
         constexpr void pop_back() noexcept {
-            UL_ASSERT(this->size() > 0, "The vector is empty");
+            if (size() == 0) [[unlikely]] {
+                return;
+            }
             this->unchecked_pop_back();
         }
 
@@ -1055,9 +1044,11 @@ namespace urlicht::container {
             const auto curr_size = this->size();
             if (new_size == curr_size) [[unlikely]] {
                 return;
-            } if (new_size > max_size()) [[unlikely]] {
+            }
+            if (new_size > max_size()) [[unlikely]] {
                 throw std::bad_alloc{};
-            } if (new_size > curr_size) {
+            }
+            if (new_size > curr_size) {
                 this->fill_with_size_(new_size - curr_size, value);
             } else {  // new_size < this->size()
                 if constexpr (!std::is_trivially_destructible_v<value_type>) {
@@ -1219,6 +1210,10 @@ namespace urlicht::container {
             }
         }
 
+    private:
+        // Data members
+        size_type size_{0U};
+        alignas(alignof(T) > 16U ? alignof(T) : 16U) std::byte storage_[N * sizeof(T)];
     }; // class inplace_vector
 
     /************************* CTAD guides *************************/
